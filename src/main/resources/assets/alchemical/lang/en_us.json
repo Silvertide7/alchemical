@@ -1,2 +1,15 @@
 {
+  "item.alchemical.elixir": "Elixir",
+
+  "creativetab.alchemical_tab": "Alchemical",
+
+  "tooltip.alchemical.elixir_hint": "Press SHIFT for more info.",
+  "tooltip.alchemical.empty_flask": "The flask is empty.",
+  "tooltip.alchemical.capacity": "Capacity: %s / %s",
+  "tooltip.alchemical.tincture": "Tincture: %s",
+  "tooltip.alchemical.essence_stone": "Essence Stone: %s",
+  "tooltip.alchemical.essence_stone_active": "Essence Stone: %s [Active]",
+  "tooltip.alchemical.catalyst": "Catalyst: %s",
+  "tooltip.alchemical.shift_to_switch": "Shift + Use to switch active stone.",
+  "tooltip.alchemical.stone_switched": "Active stone: %s"
 }
