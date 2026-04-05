@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://raw.githubusercontent.com/Silvertide7/homebound/main/src/main/java/net/silvertide/homebound/item/HomeWarpItem.java\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/Silvertide7/homebound/main/src/main/java/net/silvertide/homebound/item/IWarpItem.java\")"
+    ]
+  }
+}
