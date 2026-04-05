@@ -79,7 +79,7 @@ AttachmentType.serializable(() -> new ElixirCooldown(0L, 0))
 - `ElixirCooldown` record: stores `lastDrankAt` (game time in ticks) and `cooldownTicks` (duration)
 - Include an `isOnCooldown(Level level)` helper
 - Use `ElixirAttachmentUtil` for get/set operations — never access attachments directly from item code
-- Do NOT use `copyOnDeath()` — cooldown should reset on death
+- Use `copyOnDeath()` — cooldown must persist through death and resolve naturally
 
 ### 3. Elixir Composition System
 

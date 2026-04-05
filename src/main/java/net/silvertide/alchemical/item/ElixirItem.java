@@ -5,14 +5,18 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
+import net.silvertide.alchemical.client.ClientElixirCooldownData;
 import net.silvertide.alchemical.registry.DataComponentRegistry;
+import net.silvertide.alchemical.util.ElixirAttachmentUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -22,10 +26,12 @@ public class ElixirItem extends Item implements IElixir {
     private static final int DRINK_DURATION_TICKS = 32;
 
     private final int capacity;
+    private final int cooldownSeconds;
 
-    public ElixirItem(int capacity) {
+    public ElixirItem(int capacity, int cooldownSeconds) {
         super(new Item.Properties().stacksTo(1));
         this.capacity = capacity;
+        this.cooldownSeconds = cooldownSeconds;
     }
 
     @Override
@@ -45,10 +51,25 @@ public class ElixirItem extends Item implements IElixir {
         }
 
         if (!isUsable(stack)) {
+            if (level.isClientSide() && ClientElixirCooldownData.tryMarkMessageSent(level.getGameTime())) {
+                player.sendSystemMessage(Component.translatable("message.alchemical.flask_not_ready"));
+            }
             return InteractionResultHolder.fail(stack);
         }
 
-        // TODO: Check ElixirCooldownAttachment — block use if on cooldown
+        if (level.isClientSide()) {
+            if (ClientElixirCooldownData.isOnCooldown(level.getGameTime())) {
+                if (ClientElixirCooldownData.tryMarkMessageSent(level.getGameTime())) {
+                    player.sendSystemMessage(Component.translatable("message.alchemical.on_cooldown",
+                            ClientElixirCooldownData.getRemainingSeconds(level.getGameTime())));
+                }
+                return InteractionResultHolder.fail(stack);
+            }
+        } else {
+            if (ElixirAttachmentUtil.isOnCooldown(player)) {
+                return InteractionResultHolder.fail(stack);
+            }
+        }
 
         player.startUsingItem(hand);
         return InteractionResultHolder.consume(stack);
@@ -56,9 +77,10 @@ public class ElixirItem extends Item implements IElixir {
 
     @Override
     public @NotNull ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {
-        if (!level.isClientSide() && entity instanceof Player player) {
-            deriveEffect(stack).ifPresent(player::addEffect);
-            // TODO: Set ElixirCooldownAttachment on player after drinking
+        if (!level.isClientSide() && entity instanceof ServerPlayer player) {
+            // TODO: Replace with deriveEffect(stack) once the formula system is implemented
+            player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 0));
+            ElixirAttachmentUtil.applyNewCooldown(player, cooldownSeconds);
         }
         // Return the same stack unmodified — elixir is never consumed
         return stack;

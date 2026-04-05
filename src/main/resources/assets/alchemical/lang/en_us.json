@@ -11,5 +11,8 @@
   "tooltip.alchemical.essence_stone_active": "Essence Stone: %s [Active]",
   "tooltip.alchemical.catalyst": "Catalyst: %s",
   "tooltip.alchemical.shift_to_switch": "Shift + Use to switch active stone.",
-  "tooltip.alchemical.stone_switched": "Active stone: %s"
+  "tooltip.alchemical.stone_switched": "Active stone: %s",
+
+  "message.alchemical.on_cooldown": "Your elixir is still recovering. (%ss remaining)",
+  "message.alchemical.flask_not_ready": "Your flask needs at least one Essence Stone and one Tincture."
 }
