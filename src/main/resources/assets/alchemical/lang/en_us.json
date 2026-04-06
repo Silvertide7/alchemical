@@ -14,5 +14,17 @@
   "tooltip.alchemical.stone_switched": "Active stone: %s",
 
   "message.alchemical.on_cooldown": "You are still recovering from your last elixir. (%ss remaining)",
-  "message.alchemical.flask_not_ready": "Your flask needs at least one Essence Stone and one Tincture."
+  "message.alchemical.flask_not_ready": "Your flask needs at least one Essence Stone and one Tincture.",
+
+  "block.alchemical.athanor": "Athanor",
+  "container.alchemical.athanor": "Athanor",
+
+  "gui.alchemical.athanor.add": "Add",
+  "gui.alchemical.athanor.capacity": "Loaded: %s / %s",
+  "gui.alchemical.athanor.no_elixir": "Place an elixir in the left slot first.",
+  "gui.alchemical.athanor.no_ingredient": "Place an ingredient in the right slot.",
+  "gui.alchemical.athanor.invalid_ingredient": "This item is not a valid ingredient.",
+  "gui.alchemical.athanor.at_capacity": "The flask is full.",
+
+  "tooltip.alchemical.usable_in_elixir": "May be used in an Elixir."
 }

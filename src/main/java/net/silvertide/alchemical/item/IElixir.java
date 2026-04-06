@@ -3,14 +3,14 @@ package net.silvertide.alchemical.item;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.Optional;
+import java.util.List;
 
 public interface IElixir {
     /** Max total number of ingredient slots (tinctures + stones + catalysts combined). */
     int getCapacity();
 
-    /** Derives the effect to apply based on the mixture of ingredients currently loaded in the flask. */
-    Optional<MobEffectInstance> deriveEffect(ItemStack stack);
+    /** Derives the effects to apply based on the ingredients currently loaded in the flask. */
+    List<MobEffectInstance> deriveEffect(ItemStack stack);
 
     /** Returns the index of the currently active Essence Stone. */
     int getActiveStoneIndex(ItemStack stack);

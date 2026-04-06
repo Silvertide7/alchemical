@@ -20,6 +20,7 @@ public final class TabRegistry {
                     .title(Component.translatable("creativetab.alchemical_tab"))
                     .displayItems((parameters, output) -> {
                         output.accept(ItemRegistry.ELIXIR.get());
+                        output.accept(BlockRegistry.ATHANOR_ITEM.get());
                     })
                     .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)
                     .build());

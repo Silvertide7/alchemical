@@ -2,10 +2,12 @@ package net.silvertide.alchemical.item;
 
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.silvertide.alchemical.data.ClientIngredientData;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -15,10 +17,15 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
 import net.silvertide.alchemical.client.ClientElixirCooldownData;
+import net.silvertide.alchemical.data.IngredientManager;
+import net.silvertide.alchemical.records.CatalystDefinition;
+import net.silvertide.alchemical.records.EssenceStoneDefinition;
+import net.silvertide.alchemical.records.TinctureDefinition;
 import net.silvertide.alchemical.registry.DataComponentRegistry;
 import net.silvertide.alchemical.util.ElixirAttachmentUtil;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -78,9 +85,42 @@ public class ElixirItem extends Item implements IElixir {
     @Override
     public @NotNull ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {
         if (!level.isClientSide() && entity instanceof ServerPlayer player) {
-            // TODO: Replace with deriveEffect(stack) once the formula system is implemented
-            player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 0));
-            ElixirAttachmentUtil.applyNewCooldown(player, cooldownSeconds);
+            List<MobEffectInstance> effects = deriveEffect(stack);
+            effects.forEach(player::addEffect);
+
+            // Aggregate cooldown modifiers from all loaded ingredients
+            List<ItemStack> catalystStacks = stack.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.of());
+            List<ItemStack> tinctureStacks = stack.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of());
+            List<ItemStack> stoneStacks = stack.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
+
+            // Accumulate cooldown modifiers — use array wrappers for use in lambdas
+            float[] cooldownMult = {1.0f};
+            int[] flatCooldown = {0};
+
+            // Active stone contributes its cooldown modifier
+            if (!stoneStacks.isEmpty()) {
+                ItemStack activeStoneStack = stoneStacks.get(getActiveStoneIndex(stack));
+                IngredientManager.getStone(activeStoneStack.getItem()).ifPresent(def -> {
+                    cooldownMult[0] *= def.elixirCooldownMultiplier();
+                    flatCooldown[0] += def.elixirCooldownFlat();
+                });
+            }
+
+            for (ItemStack tinctureStack : tinctureStacks) {
+                IngredientManager.getTincture(tinctureStack.getItem()).ifPresent(def -> {
+                    cooldownMult[0] *= def.elixirCooldownMultiplier();
+                    flatCooldown[0] += def.elixirCooldownFlat();
+                });
+            }
+            for (ItemStack catalystStack : catalystStacks) {
+                IngredientManager.getCatalyst(catalystStack.getItem()).ifPresent(def -> {
+                    cooldownMult[0] *= def.elixirCooldownMultiplier();
+                    flatCooldown[0] += def.elixirCooldownFlat();
+                });
+            }
+
+            int effectiveCooldown = Math.max(0, (int)(cooldownSeconds * cooldownMult[0]) + flatCooldown[0]);
+            ElixirAttachmentUtil.applyNewCooldown(player, effectiveCooldown);
         }
         // Return the same stack unmodified — elixir is never consumed
         return stack;
@@ -97,19 +137,52 @@ public class ElixirItem extends Item implements IElixir {
     }
 
     @Override
-    public Optional<MobEffectInstance> deriveEffect(ItemStack stack) {
+    public List<MobEffectInstance> deriveEffect(ItemStack stack) {
         List<ItemStack> tinctures = stack.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of());
         List<ItemStack> stones = stack.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
         List<ItemStack> catalysts = stack.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.of());
 
-        if (stones.isEmpty() || tinctures.isEmpty()) return Optional.empty();
+        if (stones.isEmpty() || tinctures.isEmpty()) return List.of();
 
-        ItemStack activeStone = stones.get(getActiveStoneIndex(stack));
+        ItemStack activeStoneStack = stones.get(getActiveStoneIndex(stack));
+        Optional<EssenceStoneDefinition> stoneDef = IngredientManager.getStone(activeStoneStack.getItem());
+        if (stoneDef.isEmpty()) return List.of();
 
-        // TODO: Map activeStone item -> MobEffect
-        // TODO: Derive duration from tincture combination
-        // TODO: Derive amplifier/secondary effects from catalyst combination
-        return Optional.empty();
+        EssenceStoneDefinition stone = stoneDef.get();
+
+        // Collect tincture and catalyst definitions
+        List<TinctureDefinition> tinctureDefinitions = new ArrayList<>();
+        for (ItemStack tinctureStack : tinctures) {
+            IngredientManager.getTincture(tinctureStack.getItem()).ifPresent(tinctureDefinitions::add);
+        }
+        List<CatalystDefinition> catalystDefinitions = new ArrayList<>();
+        for (ItemStack catalystStack : catalysts) {
+            IngredientManager.getCatalyst(catalystStack.getItem()).ifPresent(catalystDefinitions::add);
+        }
+
+        // Aggregate duration and level modifiers from tinctures + catalysts
+        float totalDurationMult = 1.0f;
+        int totalDurationFlat = 0;
+        int totalLevelMod = 0;
+
+        for (TinctureDefinition def : tinctureDefinitions) {
+            totalDurationMult *= def.effectDurationMultiplier();
+            totalDurationFlat += def.effectDurationFlat();
+            totalLevelMod += def.effectLevelModifier();
+        }
+        for (CatalystDefinition def : catalystDefinitions) {
+            totalDurationMult *= def.effectDurationMultiplier();
+            totalDurationFlat += def.effectDurationFlat();
+            totalLevelMod += def.effectLevelModifier();
+        }
+
+        int finalDuration = Math.max(1, (int)(stone.baseDuration() * totalDurationMult) + totalDurationFlat);
+        int finalAmplifier = Math.max(0, (stone.baseLevel() - 1) + totalLevelMod);
+
+        return BuiltInRegistries.MOB_EFFECT.getOptional(stone.effect())
+                .map(effect -> new MobEffectInstance(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect), finalDuration, finalAmplifier))
+                .map(List::of)
+                .orElse(List.of());
     }
 
     @Override
@@ -142,6 +215,21 @@ public class ElixirItem extends Item implements IElixir {
         return getStoneCount(stack) >= 1 && getTinctureCount(stack) >= 1;
     }
 
+    private static Component getIngredientDisplayName(ItemStack stack, IngredientType type) {
+        if (FMLEnvironment.dist.isClient()) {
+            Optional<String> customName = switch (type) {
+                case TINCTURE -> ClientIngredientData.getTincture(stack.getItem()).flatMap(d -> d.name());
+                case ESSENCE_STONE -> ClientIngredientData.getStone(stack.getItem()).flatMap(d -> d.name());
+                case CATALYST -> ClientIngredientData.getCatalyst(stack.getItem()).flatMap(d -> d.name());
+                default -> Optional.empty();
+            };
+            if (customName.isPresent()) {
+                return Component.literal(customName.get());
+            }
+        }
+        return stack.getHoverName();
+    }
+
     private void cycleActiveStone(Player player, ItemStack stack) {
         int next = (getActiveStoneIndex(stack) + 1) % getStoneCount(stack);
         stack.set(DataComponentRegistry.ACTIVE_STONE_INDEX.get(), next);
@@ -166,11 +254,11 @@ public class ElixirItem extends Item implements IElixir {
                 tooltipComponents.add(Component.translatable("tooltip.alchemical.empty_flask"));
             } else {
                 tinctures.forEach(t -> tooltipComponents.add(
-                        Component.translatable("tooltip.alchemical.tincture", t.getHoverName())));
+                        Component.translatable("tooltip.alchemical.tincture", getIngredientDisplayName(t, IngredientType.TINCTURE))));
 
                 int activeIndex = getActiveStoneIndex(stack);
                 for (int i = 0; i < stones.size(); i++) {
-                    Component name = stones.get(i).getHoverName();
+                    Component name = getIngredientDisplayName(stones.get(i), IngredientType.ESSENCE_STONE);
                     if (i == activeIndex) {
                         tooltipComponents.add(Component.translatable("tooltip.alchemical.essence_stone_active", name));
                     } else {
@@ -182,7 +270,7 @@ public class ElixirItem extends Item implements IElixir {
                 }
 
                 catalysts.forEach(c -> tooltipComponents.add(
-                        Component.translatable("tooltip.alchemical.catalyst", c.getHoverName())));
+                        Component.translatable("tooltip.alchemical.catalyst", getIngredientDisplayName(c, IngredientType.CATALYST))));
             }
         } else {
             tooltipComponents.add(Component.translatable("tooltip.alchemical.elixir_hint"));

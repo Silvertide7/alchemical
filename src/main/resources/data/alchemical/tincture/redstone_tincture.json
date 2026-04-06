@@ -1,0 +1,9 @@
+{
+  "item": "minecraft:redstone",
+  "name": "Redstone Infusion",
+  "effect_duration_multiplier": 1.5,
+  "effect_duration_flat": 0,
+  "elixir_cooldown_multiplier": 1.0,
+  "elixir_cooldown_flat": 0,
+  "effect_level_modifier": 0
+}
