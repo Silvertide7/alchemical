@@ -2,7 +2,6 @@ package net.silvertide.alchemical.events;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -15,11 +14,12 @@ public final class ClientTooltipEvents {
 
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event) {
-        ItemStack stack = event.getItemStack();
+        var item = event.getItemStack().getItem();
+        boolean isIngredient = ClientIngredientData.getStone(item).isPresent()
+                || ClientIngredientData.getTincture(item).isPresent()
+                || ClientIngredientData.getCatalyst(item).isPresent();
 
-        if (ClientIngredientData.getStone(stack.getItem()).isPresent()
-                || ClientIngredientData.getTincture(stack.getItem()).isPresent()
-                || ClientIngredientData.getCatalyst(stack.getItem()).isPresent()) {
+        if (isIngredient) {
             event.getToolTip().add(Component.translatable("tooltip.alchemical.usable_in_elixir")
                     .withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.ITALIC));
         }

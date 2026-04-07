@@ -22,6 +22,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
     private static final int ADD_BUTTON_H = 20;
 
     private Button addButton;
+    private AthanorMenu.ValidationResult cachedValidation = AthanorMenu.ValidationResult.NO_ELIXIR;
 
     public AthanorScreen(AthanorMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -47,9 +48,8 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
     @Override
     protected void containerTick() {
         super.containerTick();
-        // Update button state every tick based on current validation result
-        AthanorMenu.ValidationResult result = menu.canAddIngredient();
-        addButton.active = (result == AthanorMenu.ValidationResult.CAN_ADD);
+        cachedValidation = menu.canAddIngredient();
+        addButton.active = (cachedValidation == AthanorMenu.ValidationResult.CAN_ADD);
     }
 
     @Override
@@ -78,8 +78,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
 
         // Validation status text when button is hovered and inactive
         if (!addButton.active && addButton.isHovered()) {
-            AthanorMenu.ValidationResult result = menu.canAddIngredient();
-            Component reason = getValidationMessage(result);
+            Component reason = getValidationMessage(cachedValidation);
             if (reason != null) {
                 graphics.renderTooltip(this.font, reason, mouseX, mouseY);
             }

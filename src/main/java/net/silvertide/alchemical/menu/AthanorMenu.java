@@ -4,11 +4,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.neoforge.items.SlotItemHandler;
-import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import net.silvertide.alchemical.block.entity.AthanorBlockEntity;
 import net.silvertide.alchemical.item.IElixir;
 import net.silvertide.alchemical.item.IngredientType;
@@ -19,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class AthanorMenu extends AbstractContainerMenu {
     public static final int ELIXIR_SLOT_INDEX = 0;
@@ -137,26 +137,15 @@ public class AthanorMenu extends AbstractContainerMenu {
         if (canAddIngredient(elixir, ingredient) != ValidationResult.CAN_ADD) return false;
 
         IngredientType type = IngredientType.of(ingredient);
+        Supplier<DataComponentType<List<ItemStack>>> component = switch (type) {
+            case TINCTURE -> DataComponentRegistry.TINCTURES;
+            case ESSENCE_STONE -> DataComponentRegistry.ESSENCE_STONES;
+            case CATALYST -> DataComponentRegistry.CATALYSTS;
+            default -> null;
+        };
+        if (component == null) return false;
 
-        // Append ingredient to the correct DataComponent list — always create a new list
-        switch (type) {
-            case TINCTURE -> {
-                List<ItemStack> current = new ArrayList<>(elixir.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of()));
-                current.add(ingredient.copyWithCount(1));
-                elixir.set(DataComponentRegistry.TINCTURES.get(), current);
-            }
-            case ESSENCE_STONE -> {
-                List<ItemStack> current = new ArrayList<>(elixir.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of()));
-                current.add(ingredient.copyWithCount(1));
-                elixir.set(DataComponentRegistry.ESSENCE_STONES.get(), current);
-            }
-            case CATALYST -> {
-                List<ItemStack> current = new ArrayList<>(elixir.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.of()));
-                current.add(ingredient.copyWithCount(1));
-                elixir.set(DataComponentRegistry.CATALYSTS.get(), current);
-            }
-            default -> { return false; }
-        }
+        appendIngredientToComponent(elixir, component, ingredient);
 
         // Consume the ingredient
         blockEntity.getContainer().removeItem(AthanorBlockEntity.INGREDIENT_SLOT, 1);
@@ -193,6 +182,14 @@ public class AthanorMenu extends AbstractContainerMenu {
             returnSlotToPlayer(player, ELIXIR_SLOT_INDEX);
             returnSlotToPlayer(player, INGREDIENT_SLOT_INDEX);
         }
+    }
+
+    private void appendIngredientToComponent(ItemStack elixir,
+                                              Supplier<DataComponentType<List<ItemStack>>> component,
+                                              ItemStack ingredient) {
+        List<ItemStack> current = new ArrayList<>(elixir.getOrDefault(component.get(), List.of()));
+        current.add(ingredient.copyWithCount(1));
+        elixir.set(component.get(), current);
     }
 
     private void returnSlotToPlayer(Player player, int slotIndex) {

@@ -2,7 +2,6 @@ package net.silvertide.alchemical.item;
 
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.neoforged.fml.loading.FMLEnvironment;
 import net.silvertide.alchemical.data.ClientIngredientData;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -119,7 +118,7 @@ public class ElixirItem extends Item implements IElixir {
                 });
             }
 
-            int effectiveCooldown = Math.max(0, (int)(cooldownSeconds * cooldownMult[0]) + flatCooldown[0]);
+            int effectiveCooldown = Math.max(0, (int)((cooldownSeconds + flatCooldown[0]) * cooldownMult[0]));
             ElixirAttachmentUtil.applyNewCooldown(player, effectiveCooldown);
         }
         // Return the same stack unmodified — elixir is never consumed
@@ -176,7 +175,7 @@ public class ElixirItem extends Item implements IElixir {
             totalLevelMod += def.effectLevelModifier();
         }
 
-        int finalDuration = Math.max(1, (int)(stone.baseDuration() * totalDurationMult) + totalDurationFlat);
+        int finalDuration = Math.max(1, (int)((stone.baseDuration() + totalDurationFlat) * totalDurationMult));
         int finalAmplifier = Math.max(0, (stone.baseLevel() - 1) + totalLevelMod);
 
         return BuiltInRegistries.MOB_EFFECT.getOptional(stone.effect())
@@ -215,19 +214,15 @@ public class ElixirItem extends Item implements IElixir {
         return getStoneCount(stack) >= 1 && getTinctureCount(stack) >= 1;
     }
 
+    // appendHoverText is always client-side — no environment guard needed
     private static Component getIngredientDisplayName(ItemStack stack, IngredientType type) {
-        if (FMLEnvironment.dist.isClient()) {
-            Optional<String> customName = switch (type) {
-                case TINCTURE -> ClientIngredientData.getTincture(stack.getItem()).flatMap(d -> d.name());
-                case ESSENCE_STONE -> ClientIngredientData.getStone(stack.getItem()).flatMap(d -> d.name());
-                case CATALYST -> ClientIngredientData.getCatalyst(stack.getItem()).flatMap(d -> d.name());
-                default -> Optional.empty();
-            };
-            if (customName.isPresent()) {
-                return Component.literal(customName.get());
-            }
-        }
-        return stack.getHoverName();
+        Optional<String> customName = switch (type) {
+            case TINCTURE -> ClientIngredientData.getTincture(stack.getItem()).flatMap(d -> d.name());
+            case ESSENCE_STONE -> ClientIngredientData.getStone(stack.getItem()).flatMap(d -> d.name());
+            case CATALYST -> ClientIngredientData.getCatalyst(stack.getItem()).flatMap(d -> d.name());
+            default -> Optional.empty();
+        };
+        return customName.<Component>map(Component::literal).orElseGet(stack::getHoverName);
     }
 
     private void cycleActiveStone(Player player, ItemStack stack) {
