@@ -10,6 +10,8 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.silvertide.alchemical.Alchemical;
 
+import java.util.List;
+
 public final class TabRegistry {
     private static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, Alchemical.MODID);
@@ -20,6 +22,15 @@ public final class TabRegistry {
                     .title(Component.translatable("creativetab.alchemical_tab"))
                     .displayItems((parameters, output) -> {
                         output.accept(ItemRegistry.ELIXIR.get());
+                        // Default essence stones — one entry per built-in definition
+                        for (var id : List.of(
+                                Alchemical.id("regen_stone"),
+                                Alchemical.id("speed_stone")
+                        )) {
+                            ItemStack stone = new ItemStack(ItemRegistry.ESSENCE_STONE.get());
+                            stone.set(DataComponentRegistry.ESSENCE_STONE_TYPE.get(), id);
+                            output.accept(stone);
+                        }
                         output.accept(BlockRegistry.ATHANOR_ITEM.get());
                     })
                     .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)

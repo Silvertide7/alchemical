@@ -99,10 +99,13 @@ public class ElixirItem extends Item implements IElixir {
             // Active stone contributes its cooldown modifier
             if (!stoneStacks.isEmpty()) {
                 ItemStack activeStoneStack = stoneStacks.get(getActiveStoneIndex(stack));
-                IngredientManager.getStone(activeStoneStack.getItem()).ifPresent(def -> {
-                    cooldownMult[0] *= def.elixirCooldownMultiplier();
-                    flatCooldown[0] += def.elixirCooldownFlat();
-                });
+                var stoneType = activeStoneStack.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get());
+                if (stoneType != null) {
+                    IngredientManager.getStone(stoneType).ifPresent(def -> {
+                        cooldownMult[0] *= def.elixirCooldownMultiplier();
+                        flatCooldown[0] += def.elixirCooldownFlat();
+                    });
+                }
             }
 
             for (ItemStack tinctureStack : tinctureStacks) {
@@ -144,7 +147,9 @@ public class ElixirItem extends Item implements IElixir {
         if (stones.isEmpty() || tinctures.isEmpty()) return List.of();
 
         ItemStack activeStoneStack = stones.get(getActiveStoneIndex(stack));
-        Optional<EssenceStoneDefinition> stoneDef = IngredientManager.getStone(activeStoneStack.getItem());
+        var stoneType = activeStoneStack.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get());
+        if (stoneType == null) return List.of();
+        Optional<EssenceStoneDefinition> stoneDef = IngredientManager.getStone(stoneType);
         if (stoneDef.isEmpty()) return List.of();
 
         EssenceStoneDefinition stone = stoneDef.get();
@@ -218,7 +223,12 @@ public class ElixirItem extends Item implements IElixir {
     private static Component getIngredientDisplayName(ItemStack stack, IngredientType type) {
         Optional<String> customName = switch (type) {
             case TINCTURE -> ClientIngredientData.getTincture(stack.getItem()).flatMap(d -> d.name());
-            case ESSENCE_STONE -> ClientIngredientData.getStone(stack.getItem()).flatMap(d -> d.name());
+            case ESSENCE_STONE -> {
+                var stoneType = stack.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get());
+                yield stoneType != null
+                        ? ClientIngredientData.getStone(stoneType).flatMap(EssenceStoneDefinition::name)
+                        : Optional.empty();
+            }
             case CATALYST -> ClientIngredientData.getCatalyst(stack.getItem()).flatMap(d -> d.name());
             default -> Optional.empty();
         };

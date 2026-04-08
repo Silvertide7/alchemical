@@ -2,6 +2,7 @@ package net.silvertide.alchemical.registry;
 
 import com.mojang.serialization.Codec;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.world.item.ItemStack;
@@ -39,6 +40,15 @@ public final class DataComponentRegistry {
                     DataComponentType.<List<ItemStack>>builder()
                             .persistent(ItemStack.CODEC.listOf())
                             .networkSynchronized(ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()))
+                            .build());
+
+    // Identifies which datapack definition an essence stone item maps to.
+    // Keyed by the ResourceLocation of the definition file (e.g. alchemical:regen_stone).
+    public static final Supplier<DataComponentType<ResourceLocation>> ESSENCE_STONE_TYPE =
+            DATA_COMPONENTS.register("essence_stone_type", () ->
+                    DataComponentType.<ResourceLocation>builder()
+                            .persistent(ResourceLocation.CODEC)
+                            .networkSynchronized(ResourceLocation.STREAM_CODEC)
                             .build());
 
     // Which Essence Stone is currently active (index into ESSENCE_STONES list).

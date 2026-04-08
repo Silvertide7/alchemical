@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "alchemical:item/essence_stone",
+    "layer1": "alchemical:item/essence_stone_overlay"
+  }
+}

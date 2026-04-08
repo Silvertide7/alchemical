@@ -28,7 +28,15 @@
       "Bash(curl -s \"https://raw.githubusercontent.com/Silvertide7/artifactory/main/src/main/java/net/silvertide/artifactory/registry/DataComponentRegistry.java\")",
       "Bash(curl -s \"https://raw.githubusercontent.com/Silvertide7/artifactory/main/src/main/resources/assets/artifactory/lang/en_us.json\")",
       "Bash(curl -s \"https://raw.githubusercontent.com/Silvertide7/artifactory/main/src/main/java/net/silvertide/artifactory/gui/GUIConstants.java\")",
-      "Bash(./gradlew compileJava)"
+      "Bash(./gradlew compileJava)",
+      "Bash(python3 -m json.tool)",
+      "Bash(grep -r -i \"pixel\" /Users/nate/.claude/settings.json /Users/nate/.claude/mcp*.json)",
+      "Bash(python3 -m json.tool /Users/nate/.claude/settings.json)",
+      "Bash(true ls:*)",
+      "Bash(true find:*)",
+      "Bash(python3 -m json.tool /Users/nate/.claude.json)",
+      "Bash(sed -i '' '957s/\"\"hasTrustDialogAccepted\"\": true/\"\"hasTrustDialogAccepted\"\": false/' /Users/nate/.claude.json)",
+      "Bash(sed -n '955,960p' /Users/nate/.claude.json)"
     ]
   }
 }

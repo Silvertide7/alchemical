@@ -2,6 +2,7 @@ package net.silvertide.alchemical.item;
 
 import net.minecraft.world.item.ItemStack;
 import net.silvertide.alchemical.data.IngredientManager;
+import net.silvertide.alchemical.registry.DataComponentRegistry;
 
 /**
  * Identifies which category of Elixir ingredient an ItemStack belongs to.
@@ -17,7 +18,7 @@ public enum IngredientType {
 
     public static IngredientType of(ItemStack stack) {
         if (stack.isEmpty()) return NONE;
-        if (IngredientManager.getStone(stack.getItem()).isPresent()) return ESSENCE_STONE;
+        if (stack.has(DataComponentRegistry.ESSENCE_STONE_TYPE.get())) return ESSENCE_STONE;
         if (IngredientManager.getTincture(stack.getItem()).isPresent()) return TINCTURE;
         if (IngredientManager.getCatalyst(stack.getItem()).isPresent()) return CATALYST;
         return NONE;

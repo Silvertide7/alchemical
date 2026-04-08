@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " Q ",
+    "QSQ",
+    " Q "
+  ],
+  "key": {
+    "Q": { "item": "minecraft:quartz" },
+    "S": { "item": "minecraft:smooth_stone" }
+  },
+  "result": {
+    "id": "alchemical:essence_stone",
+    "count": 2,
+    "components": {
+      "alchemical:essence_stone_type": "alchemical:speed_stone"
+    }
+  }
+}

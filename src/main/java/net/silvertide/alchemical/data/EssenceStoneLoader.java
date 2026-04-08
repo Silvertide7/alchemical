@@ -29,6 +29,7 @@ public class EssenceStoneLoader extends SimpleJsonResourceReloadListener {
             EssenceStoneDefinition.CODEC
                     .parse(JsonOps.INSTANCE, entry.getValue())
                     .resultOrPartial(err -> LOGGER.error("Failed to parse essence stone definition '{}': {}", entry.getKey(), err))
+                    .map(def -> def.withId(entry.getKey()))
                     .ifPresent(IngredientManager::registerStone);
         }
         LOGGER.info("[Alchemical] Loaded {} essence stone definitions", IngredientManager.getAllStones().size());

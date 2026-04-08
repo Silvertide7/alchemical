@@ -1,6 +1,6 @@
 {
-  "item": "minecraft:lapis_lazuli",
-  "name": "Lapis Essence",
+  "name": "Crimson Stone",
+  "color": "#FF6699",
   "effect": "minecraft:regeneration",
   "base_duration": 200,
   "base_level": 1,

@@ -1,0 +1,9 @@
+{
+  "name": "Azure Stone",
+  "color": "#99CCFF",
+  "effect": "minecraft:speed",
+  "base_duration": 300,
+  "base_level": 1,
+  "elixir_cooldown_multiplier": 1.0,
+  "elixir_cooldown_flat": 0
+}

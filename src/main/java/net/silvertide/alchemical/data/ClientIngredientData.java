@@ -1,5 +1,6 @@
 package net.silvertide.alchemical.data;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.silvertide.alchemical.records.CatalystDefinition;
 import net.silvertide.alchemical.records.EssenceStoneDefinition;
@@ -11,7 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public final class ClientIngredientData {
-    private static final Map<Item, EssenceStoneDefinition> STONES = new HashMap<>();
+    private static final Map<ResourceLocation, EssenceStoneDefinition> STONES = new HashMap<>();
     private static final Map<Item, TinctureDefinition> TINCTURES = new HashMap<>();
     private static final Map<Item, CatalystDefinition> CATALYSTS = new HashMap<>();
 
@@ -25,13 +26,13 @@ public final class ClientIngredientData {
         STONES.clear();
         TINCTURES.clear();
         CATALYSTS.clear();
-        stones.forEach(d -> STONES.put(d.item(), d));
+        stones.forEach(d -> STONES.put(d.id(), d));
         tinctures.forEach(d -> TINCTURES.put(d.item(), d));
         catalysts.forEach(d -> CATALYSTS.put(d.item(), d));
     }
 
-    public static Optional<EssenceStoneDefinition> getStone(Item item) {
-        return Optional.ofNullable(STONES.get(item));
+    public static Optional<EssenceStoneDefinition> getStone(ResourceLocation id) {
+        return Optional.ofNullable(STONES.get(id));
     }
 
     public static Optional<TinctureDefinition> getTincture(Item item) {
