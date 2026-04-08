@@ -5,10 +5,12 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.world.Container;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.silvertide.alchemical.block.entity.AthanorBlockEntity;
+import net.silvertide.alchemical.config.AlchemicalConfig;
 import net.silvertide.alchemical.item.IElixir;
 import net.silvertide.alchemical.item.IngredientType;
 import net.silvertide.alchemical.registry.BlockRegistry;
@@ -24,15 +26,15 @@ public class AthanorMenu extends AbstractContainerMenu {
     public static final int ELIXIR_SLOT_INDEX = 0;
     public static final int INGREDIENT_SLOT_INDEX = 1;
     private static final int PLAYER_INV_START = 2;
-    private static final int PLAYER_INV_END = 29;   // 2 + 27
+    private static final int PLAYER_INV_END = 29;
     private static final int HOTBAR_START = 29;
-    private static final int HOTBAR_END = 38;        // 29 + 9
+    private static final int HOTBAR_END = 38;
 
-    // GUI slot positions
-    private static final int ELIXIR_SLOT_X = 44;
-    private static final int ELIXIR_SLOT_Y = 35;
-    private static final int INGREDIENT_SLOT_X = 116;
-    private static final int INGREDIENT_SLOT_Y = 35;
+    // GUI slot positions: elixir centred, ingredient in right panel
+    private static final int ELIXIR_SLOT_X     = 79;   // (176-18)/2
+    private static final int ELIXIR_SLOT_Y     = 16;
+    private static final int INGREDIENT_SLOT_X = 130;
+    private static final int INGREDIENT_SLOT_Y = 16;
 
     public enum ValidationResult {
         CAN_ADD,
@@ -43,6 +45,7 @@ public class AthanorMenu extends AbstractContainerMenu {
     }
 
     private final AthanorBlockEntity blockEntity;
+    private final Player menuPlayer;
 
     // Synced to client: index 0 = loadedCount, index 1 = capacity
     private final SimpleContainerData containerData = new SimpleContainerData(2) {
@@ -66,8 +69,9 @@ public class AthanorMenu extends AbstractContainerMenu {
     public AthanorMenu(int containerId, Inventory playerInventory, AthanorBlockEntity blockEntity) {
         super(MenuRegistry.ATHANOR.get(), containerId);
         this.blockEntity = blockEntity;
+        this.menuPlayer  = playerInventory.player;
 
-        // Slot 0 — Elixir (only accepts IElixir items)
+        // Slot 0 — Elixir
         addSlot(new Slot(blockEntity.getContainer(), AthanorBlockEntity.ELIXIR_SLOT, ELIXIR_SLOT_X, ELIXIR_SLOT_Y) {
             @Override
             public boolean mayPlace(@NotNull ItemStack stack) {
@@ -75,30 +79,40 @@ public class AthanorMenu extends AbstractContainerMenu {
             }
         });
 
-        // Slot 1 — Ingredient preview (only accepts valid ingredient types)
+        // Slot 1 — Ingredient (hidden and locked when no elixir is present or elixir is full)
         addSlot(new Slot(blockEntity.getContainer(), AthanorBlockEntity.INGREDIENT_SLOT, INGREDIENT_SLOT_X, INGREDIENT_SLOT_Y) {
             @Override
+            public boolean isActive() {
+                ItemStack elixir = blockEntity.getElixirStack();
+                if (elixir.isEmpty() || !(elixir.getItem() instanceof IElixir iElixir)) return false;
+                return iElixir.getLoadedCount(elixir) < iElixir.getCapacity();
+            }
+
+            @Override
             public boolean mayPlace(@NotNull ItemStack stack) {
-                return IngredientType.of(stack) != IngredientType.NONE;
+                ItemStack elixir = blockEntity.getElixirStack();
+                return !elixir.isEmpty()
+                        && elixir.getItem() instanceof IElixir
+                        && IngredientType.of(stack) != IngredientType.NONE;
             }
         });
 
         // Player inventory (slots 2–28)
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(playerInventory, col + row * 9 + 9, 8 + col * 18, 84 + row * 18));
+                addSlot(new Slot(playerInventory, col + row * 9 + 9, 8 + col * 18, 152 + row * 18));
             }
         }
 
         // Hotbar (slots 29–37)
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(playerInventory, col, 8 + col * 18, 142));
+            addSlot(new Slot(playerInventory, col, 8 + col * 18, 210));
         }
 
         addDataSlots(containerData);
     }
 
-    // Client-side constructor (called by MenuRegistry factory with FriendlyByteBuf)
+    // Client-side constructor
     public AthanorMenu(int containerId, Inventory playerInventory, FriendlyByteBuf buf) {
         this(containerId, playerInventory, getBlockEntity(playerInventory, buf));
     }
@@ -107,8 +121,21 @@ public class AthanorMenu extends AbstractContainerMenu {
         BlockPos pos = buf.readBlockPos();
         BlockEntity be = playerInventory.player.level().getBlockEntity(pos);
         if (be instanceof AthanorBlockEntity athanorBE) return athanorBE;
-        // Fallback for safety — should never happen in normal play
         throw new IllegalStateException("No AthanorBlockEntity at " + pos);
+    }
+
+    // --- Container change listener ---
+
+    @Override
+    public void slotsChanged(@NotNull Container container) {
+        super.slotsChanged(container);
+        // If the block entity's container changed and the elixir is now gone,
+        // return any staged ingredient to the player immediately.
+        if (container == blockEntity.getContainer()
+                && blockEntity.getElixirStack().isEmpty()
+                && !menuPlayer.level().isClientSide()) {
+            returnSlotToPlayer(menuPlayer, INGREDIENT_SLOT_INDEX);
+        }
     }
 
     // --- Validation ---
@@ -125,12 +152,18 @@ public class AthanorMenu extends AbstractContainerMenu {
         return ValidationResult.CAN_ADD;
     }
 
-    // --- Button: Add ingredient ---
+    // --- Button handlers ---
 
     @Override
     public boolean clickMenuButton(@NotNull Player player, int id) {
-        if (id != 0) return false;
+        return switch (id) {
+            case 0 -> handleAddIngredient(player);
+            case 1 -> handleClearElixir(player);
+            default -> false;
+        };
+    }
 
+    private boolean handleAddIngredient(Player player) {
         ItemStack elixir = blockEntity.getElixirStack();
         ItemStack ingredient = blockEntity.getIngredientStack();
 
@@ -146,9 +179,32 @@ public class AthanorMenu extends AbstractContainerMenu {
         if (component == null) return false;
 
         appendIngredientToComponent(elixir, component, ingredient);
-
-        // Consume the ingredient
         blockEntity.getContainer().removeItem(AthanorBlockEntity.INGREDIENT_SLOT, 1);
+        blockEntity.setChanged();
+        broadcastChanges();
+        return true;
+    }
+
+    private boolean handleClearElixir(Player player) {
+        ItemStack elixir = blockEntity.getElixirStack();
+        if (elixir.isEmpty() || !(elixir.getItem() instanceof IElixir)) return false;
+
+        // Each stone rolls against break chance — survivors returned to player
+        List<ItemStack> stones = new ArrayList<>(elixir.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of()));
+        double breakChance = AlchemicalConfig.ESSENCE_STONE_BREAK_CHANCE.get();
+        for (ItemStack stone : stones) {
+            if (player.getRandom().nextDouble() >= breakChance) {
+                if (!player.getInventory().add(stone.copy())) {
+                    player.drop(stone.copy(), false);
+                }
+            }
+        }
+
+        // Tinctures and catalysts are destroyed — no return
+        elixir.remove(DataComponentRegistry.TINCTURES.get());
+        elixir.remove(DataComponentRegistry.ESSENCE_STONES.get());
+        elixir.remove(DataComponentRegistry.CATALYSTS.get());
+        elixir.remove(DataComponentRegistry.ACTIVE_STONE_INDEX.get());
 
         blockEntity.setChanged();
         broadcastChanges();
@@ -222,12 +278,10 @@ public class AthanorMenu extends AbstractContainerMenu {
             remainder = stack.copy();
 
             if (index < PLAYER_INV_START) {
-                // Moving from block slots to player inventory
                 if (!moveItemStackTo(stack, PLAYER_INV_START, HOTBAR_END, true)) {
                     return ItemStack.EMPTY;
                 }
             } else {
-                // Moving from player inventory to block slots — try elixir first, then ingredient
                 if (!moveItemStackTo(stack, ELIXIR_SLOT_INDEX, ELIXIR_SLOT_INDEX + 1, false)) {
                     if (!moveItemStackTo(stack, INGREDIENT_SLOT_INDEX, INGREDIENT_SLOT_INDEX + 1, false)) {
                         return ItemStack.EMPTY;

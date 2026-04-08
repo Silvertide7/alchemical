@@ -36,7 +36,23 @@
       "Bash(true find:*)",
       "Bash(python3 -m json.tool /Users/nate/.claude.json)",
       "Bash(sed -i '' '957s/\"\"hasTrustDialogAccepted\"\": true/\"\"hasTrustDialogAccepted\"\": false/' /Users/nate/.claude.json)",
-      "Bash(sed -n '955,960p' /Users/nate/.claude.json)"
+      "Bash(sed -n '955,960p' /Users/nate/.claude.json)",
+      "Bash(python3 -m json.tool /Users/nate/Workspace/minecraft/personal/alchemical/src/main/resources/assets/alchemical/lang/en_us.json)",
+      "Bash(curl -s \"https://raw.githubusercontent.com/mickelus/tetra/1.20/src/main/java/se/mickelus/tetra/blocks/workbench/gui/WorkbenchScreen.java\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/mickelus/tetra/1.20/src/main/java/se/mickelus/tetra/blocks/workbench/gui/GuiModuleList.java\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/mickelus/tetra/1.20/src/main/java/se/mickelus/tetra/blocks/workbench/gui/GuiModule.java\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/mickelus/tetra/1.20/src/main/java/se/mickelus/mutil/gui/GuiElement.java\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/mickelus/tetra/1.20/src/main/java/se/mickelus/mutil/gui/GuiRect.java\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/mickelus/mutil/1.20/src/main/java/se/mickelus/mutil/gui/GuiElement.java\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/mickelus/mutil/1.20/src/main/java/se/mickelus/mutil/gui/GuiRect.java\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/mickelus/mutil/1.20/src/main/java/se/mickelus/mutil/gui/GuiLine.java\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/mickelus/mutil/1.20/src/main/java/se/mickelus/mutil/gui/GuiTexture.java\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/mickelus/mutil/1.20/src/main/java/se/mickelus/mutil/gui/animation/KeyframeAnimation.java\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/mickelus/mutil/1.20/src/main/java/se/mickelus/mutil/gui/animation/Applier.java\")",
+      "Bash(curl -s \"https://api.github.com/repos/mickelus/mutil/contents/src/main/java/se/mickelus/mutil/gui?ref=1.20\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/mickelus/tetra/1.20/src/main/java/se/mickelus/tetra/blocks/workbench/gui/GuiModuleMajor.java\")",
+      "Bash(curl -s \"https://api.github.com/repos/mickelus/tetra/contents/src/main/java/se/mickelus/tetra?ref=1.20\")",
+      "Bash(curl -s \"https://api.github.com/repos/mickelus/tetra/contents/src/main/java/se/mickelus/tetra/gui?ref=1.20\")"
     ]
   }
 }

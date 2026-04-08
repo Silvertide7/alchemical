@@ -21,11 +21,19 @@
   "container.alchemical.athanor": "Athanor",
 
   "gui.alchemical.athanor.add": "Add",
+  "gui.alchemical.athanor.clear": "Clear",
+  "gui.alchemical.athanor.clear_confirm": "Confirm?",
   "gui.alchemical.athanor.capacity": "Loaded: %s / %s",
-  "gui.alchemical.athanor.no_elixir": "Place an elixir in the left slot first.",
-  "gui.alchemical.athanor.no_ingredient": "Place an ingredient in the right slot.",
+  "gui.alchemical.athanor.no_elixir": "Place an elixir in the slot first.",
+  "gui.alchemical.athanor.no_ingredient": "Place an ingredient in the slot below.",
   "gui.alchemical.athanor.invalid_ingredient": "This item is not a valid ingredient.",
   "gui.alchemical.athanor.at_capacity": "The flask is full.",
+  "gui.alchemical.athanor.section.stones": "Essence Stones",
+  "gui.alchemical.athanor.section.tinctures": "Tinctures",
+  "gui.alchemical.athanor.section.catalysts": "Catalysts",
+  "gui.alchemical.athanor.entry": "- %s",
+  "gui.alchemical.athanor.entry.stone_active": "- %s [Active]",
+  "gui.alchemical.athanor.none": "(none)",
 
   "tooltip.alchemical.usable_in_elixir": "May be used in an Elixir."
 }
