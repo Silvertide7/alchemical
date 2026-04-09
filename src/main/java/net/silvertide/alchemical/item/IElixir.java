@@ -26,4 +26,7 @@ public interface IElixir {
 
     /** Returns true if the flask has the minimum required ingredients to be used (>=1 stone, >=1 tincture). */
     boolean isUsable(ItemStack stack);
+
+    /** Returns the base cooldown in seconds before ingredient modifiers are applied. */
+    int getCooldownSeconds();
 }

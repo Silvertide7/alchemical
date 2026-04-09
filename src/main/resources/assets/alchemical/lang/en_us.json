@@ -28,6 +28,8 @@
   "gui.alchemical.athanor.no_ingredient": "Place an ingredient in the slot below.",
   "gui.alchemical.athanor.invalid_ingredient": "This item is not a valid ingredient.",
   "gui.alchemical.athanor.at_capacity": "The flask is full.",
+  "gui.alchemical.athanor.duplicate_stone": "This stone is already bound to the elixir.",
+  "gui.alchemical.athanor.no_room": "Not enough room!",
   "gui.alchemical.athanor.section.stones": "Essence Stones",
   "gui.alchemical.athanor.section.tinctures": "Tinctures",
   "gui.alchemical.athanor.section.catalysts": "Catalysts",

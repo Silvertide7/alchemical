@@ -18,7 +18,8 @@ public record EssenceStoneDefinition(
         int baseDuration,
         int baseLevel,
         float elixirCooldownMultiplier,
-        int elixirCooldownFlat
+        int elixirCooldownFlat,
+        int potency                    // capacity slots consumed; default 2 for stones
 ) {
     private static final ResourceLocation PLACEHOLDER_ID = ResourceLocation.fromNamespaceAndPath("alchemical", "unknown");
 
@@ -27,7 +28,7 @@ public record EssenceStoneDefinition(
             i -> String.format("#%06X", i & 0xFFFFFF)
     );
 
-    // JSON codec — 7 fields, no id (id is stamped by the loader from the file key)
+    // JSON codec — 8 fields, no id (id is stamped by the loader from the file key)
     public static final Codec<EssenceStoneDefinition> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.optionalFieldOf("name").forGetter(EssenceStoneDefinition::name),
             HEX_COLOR_CODEC.optionalFieldOf("color", 0xAA88FF).forGetter(EssenceStoneDefinition::color),
@@ -35,9 +36,10 @@ public record EssenceStoneDefinition(
             Codec.INT.optionalFieldOf("base_duration", 200).forGetter(EssenceStoneDefinition::baseDuration),
             Codec.INT.optionalFieldOf("base_level", 1).forGetter(EssenceStoneDefinition::baseLevel),
             Codec.FLOAT.optionalFieldOf("elixir_cooldown_multiplier", 1.0f).forGetter(EssenceStoneDefinition::elixirCooldownMultiplier),
-            Codec.INT.optionalFieldOf("elixir_cooldown_flat", 0).forGetter(EssenceStoneDefinition::elixirCooldownFlat)
-    ).apply(inst, (name, color, effect, dur, lvl, cMult, cFlat) ->
-            new EssenceStoneDefinition(PLACEHOLDER_ID, name, color, effect, dur, lvl, cMult, cFlat)));
+            Codec.INT.optionalFieldOf("elixir_cooldown_flat", 0).forGetter(EssenceStoneDefinition::elixirCooldownFlat),
+            Codec.INT.optionalFieldOf("potency", 2).forGetter(EssenceStoneDefinition::potency)
+    ).apply(inst, (name, color, effect, dur, lvl, cMult, cFlat, potency) ->
+            new EssenceStoneDefinition(PLACEHOLDER_ID, name, color, effect, dur, lvl, cMult, cFlat, potency)));
 
     // Network codec — includes id as first field
     public static final StreamCodec<RegistryFriendlyByteBuf, EssenceStoneDefinition> STREAM_CODEC = StreamCodec.of(
@@ -50,6 +52,7 @@ public record EssenceStoneDefinition(
                 ByteBufCodecs.INT.encode(buf, def.baseLevel());
                 ByteBufCodecs.FLOAT.encode(buf, def.elixirCooldownMultiplier());
                 ByteBufCodecs.INT.encode(buf, def.elixirCooldownFlat());
+                ByteBufCodecs.INT.encode(buf, def.potency());
             },
             buf -> new EssenceStoneDefinition(
                     ResourceLocation.STREAM_CODEC.decode(buf),
@@ -59,11 +62,13 @@ public record EssenceStoneDefinition(
                     ByteBufCodecs.INT.decode(buf),
                     ByteBufCodecs.INT.decode(buf),
                     ByteBufCodecs.FLOAT.decode(buf),
+                    ByteBufCodecs.INT.decode(buf),
                     ByteBufCodecs.INT.decode(buf)
             )
     );
 
     public EssenceStoneDefinition withId(ResourceLocation id) {
-        return new EssenceStoneDefinition(id, name, color, effect, baseDuration, baseLevel, elixirCooldownMultiplier, elixirCooldownFlat);
+        return new EssenceStoneDefinition(id, name, color, effect, baseDuration, baseLevel,
+                elixirCooldownMultiplier, elixirCooldownFlat, potency);
     }
 }

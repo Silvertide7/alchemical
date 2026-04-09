@@ -22,6 +22,7 @@ import net.silvertide.alchemical.records.EssenceStoneDefinition;
 import net.silvertide.alchemical.records.TinctureDefinition;
 import net.silvertide.alchemical.registry.DataComponentRegistry;
 import net.silvertide.alchemical.util.ElixirAttachmentUtil;
+import net.silvertide.alchemical.util.IngredientUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -209,14 +210,24 @@ public class ElixirItem extends Item implements IElixir {
 
     @Override
     public int getLoadedCount(ItemStack stack) {
-        return stack.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of()).size()
-                + stack.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of()).size()
-                + stack.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.of()).size();
+        int total = 0;
+        for (ItemStack s : stack.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.<ItemStack>of()))
+            total += IngredientUtil.getPotency(s);
+        for (ItemStack s : stack.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.<ItemStack>of()))
+            total += IngredientUtil.getPotency(s);
+        for (ItemStack s : stack.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.<ItemStack>of()))
+            total += IngredientUtil.getPotency(s);
+        return total;
     }
 
     @Override
     public boolean isUsable(ItemStack stack) {
         return getStoneCount(stack) >= 1 && getTinctureCount(stack) >= 1;
+    }
+
+    @Override
+    public int getCooldownSeconds() {
+        return cooldownSeconds;
     }
 
     // appendHoverText is always client-side — no environment guard needed

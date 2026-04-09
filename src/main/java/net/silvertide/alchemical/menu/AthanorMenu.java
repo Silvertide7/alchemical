@@ -5,7 +5,9 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Container;
+import net.silvertide.alchemical.util.IngredientUtil;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -41,7 +43,8 @@ public class AthanorMenu extends AbstractContainerMenu {
         NO_ELIXIR,
         NO_INGREDIENT,
         INVALID_INGREDIENT,
-        AT_CAPACITY
+        AT_CAPACITY,
+        DUPLICATE_STONE
     }
 
     private final AthanorBlockEntity blockEntity;
@@ -126,15 +129,37 @@ public class AthanorMenu extends AbstractContainerMenu {
 
     // --- Container change listener ---
 
+    /**
+     * Called every server tick while the menu is open. Guarantees the ingredient
+     * slot is ejected whenever the elixir slot is empty or the elixir is full,
+     * regardless of which interaction path removed the elixir.
+     */
+    @Override
+    public void broadcastChanges() {
+        super.broadcastChanges();
+        if (!menuPlayer.level().isClientSide()) {
+            ItemStack elixir = blockEntity.getElixirStack();
+            boolean shouldEject = elixir.isEmpty() || !(elixir.getItem() instanceof IElixir);
+            if (shouldEject) {
+                returnSlotToPlayer(menuPlayer, INGREDIENT_SLOT_INDEX);
+            }
+        }
+    }
+
     @Override
     public void slotsChanged(@NotNull Container container) {
         super.slotsChanged(container);
-        // If the block entity's container changed and the elixir is now gone,
-        // return any staged ingredient to the player immediately.
-        if (container == blockEntity.getContainer()
-                && blockEntity.getElixirStack().isEmpty()
-                && !menuPlayer.level().isClientSide()) {
-            returnSlotToPlayer(menuPlayer, INGREDIENT_SLOT_INDEX);
+        if (container == blockEntity.getContainer() && !menuPlayer.level().isClientSide()) {
+            // Eject the staged ingredient whenever the slot should be inactive:
+            // - elixir removed, OR
+            // - elixir just became full (so the now-invisible slot can't trap items)
+            ItemStack elixir = blockEntity.getElixirStack();
+            boolean slotShouldBeInactive = elixir.isEmpty()
+                    || !(elixir.getItem() instanceof IElixir iElixir)
+                    || iElixir.getLoadedCount(elixir) >= iElixir.getCapacity();
+            if (slotShouldBeInactive) {
+                returnSlotToPlayer(menuPlayer, INGREDIENT_SLOT_INDEX);
+            }
         }
     }
 
@@ -148,7 +173,22 @@ public class AthanorMenu extends AbstractContainerMenu {
         if (elixir.isEmpty() || !(elixir.getItem() instanceof IElixir iElixir)) return ValidationResult.NO_ELIXIR;
         if (ingredient.isEmpty()) return ValidationResult.NO_INGREDIENT;
         if (IngredientType.of(ingredient) == IngredientType.NONE) return ValidationResult.INVALID_INGREDIENT;
-        if (iElixir.getLoadedCount(elixir) >= iElixir.getCapacity()) return ValidationResult.AT_CAPACITY;
+        if (iElixir.getLoadedCount(elixir) + IngredientUtil.getPotency(ingredient) > iElixir.getCapacity())
+            return ValidationResult.AT_CAPACITY;
+
+        // Prevent adding a duplicate essence stone type
+        if (IngredientType.of(ingredient) == IngredientType.ESSENCE_STONE) {
+            ResourceLocation newType = ingredient.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get());
+            if (newType != null) {
+                List<ItemStack> existing = elixir.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
+                for (ItemStack stone : existing) {
+                    if (newType.equals(stone.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get()))) {
+                        return ValidationResult.DUPLICATE_STONE;
+                    }
+                }
+            }
+        }
+
         return ValidationResult.CAN_ADD;
     }
 

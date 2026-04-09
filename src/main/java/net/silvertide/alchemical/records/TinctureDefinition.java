@@ -18,7 +18,8 @@ public record TinctureDefinition(
         int elixirCooldownFlat,
         float effectDurationMultiplier,
         int effectDurationFlat,
-        int effectLevelModifier
+        int effectLevelModifier,
+        int potency                    // capacity slots consumed; default 1
 ) {
     public static final Codec<TinctureDefinition> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             BuiltInRegistries.ITEM.byNameCodec().fieldOf("item").forGetter(TinctureDefinition::item),
@@ -27,10 +28,11 @@ public record TinctureDefinition(
             Codec.INT.optionalFieldOf("elixir_cooldown_flat", 0).forGetter(TinctureDefinition::elixirCooldownFlat),
             Codec.FLOAT.optionalFieldOf("effect_duration_multiplier", 1.0f).forGetter(TinctureDefinition::effectDurationMultiplier),
             Codec.INT.optionalFieldOf("effect_duration_flat", 0).forGetter(TinctureDefinition::effectDurationFlat),
-            Codec.INT.optionalFieldOf("effect_level_modifier", 0).forGetter(TinctureDefinition::effectLevelModifier)
+            Codec.INT.optionalFieldOf("effect_level_modifier", 0).forGetter(TinctureDefinition::effectLevelModifier),
+            Codec.INT.optionalFieldOf("potency", 1).forGetter(TinctureDefinition::potency)
     ).apply(inst, TinctureDefinition::new));
 
-    // StreamCodec.composite supports up to 6 fields; write manually for 7
+    // StreamCodec.composite supports up to 6 fields; write manually for 8
     public static final StreamCodec<RegistryFriendlyByteBuf, TinctureDefinition> STREAM_CODEC = StreamCodec.of(
             (buf, def) -> {
                 ByteBufCodecs.registry(Registries.ITEM).encode(buf, def.item());
@@ -40,6 +42,7 @@ public record TinctureDefinition(
                 ByteBufCodecs.FLOAT.encode(buf, def.effectDurationMultiplier());
                 ByteBufCodecs.INT.encode(buf, def.effectDurationFlat());
                 ByteBufCodecs.INT.encode(buf, def.effectLevelModifier());
+                ByteBufCodecs.INT.encode(buf, def.potency());
             },
             buf -> new TinctureDefinition(
                     ByteBufCodecs.registry(Registries.ITEM).decode(buf),
@@ -47,6 +50,7 @@ public record TinctureDefinition(
                     ByteBufCodecs.FLOAT.decode(buf),
                     ByteBufCodecs.INT.decode(buf),
                     ByteBufCodecs.FLOAT.decode(buf),
+                    ByteBufCodecs.INT.decode(buf),
                     ByteBufCodecs.INT.decode(buf),
                     ByteBufCodecs.INT.decode(buf)
             )
