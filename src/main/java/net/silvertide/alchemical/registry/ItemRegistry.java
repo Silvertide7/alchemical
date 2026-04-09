@@ -13,7 +13,7 @@ public final class ItemRegistry {
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, Alchemical.MODID);
 
     public static final DeferredHolder<Item, ElixirItem> ELIXIR = ITEMS.register("elixir",
-            () -> new ElixirItem(3, 10));
+            () -> new ElixirItem(7, 10));
 
     public static final DeferredHolder<Item, EssenceStoneItem> ESSENCE_STONE = ITEMS.register("essence_stone",
             EssenceStoneItem::new);

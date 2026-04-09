@@ -1,0 +1,8 @@
+{
+  "name": "Tidal Stone",
+  "color": "#3399CC",
+  "effect": "minecraft:water_breathing",
+  "base_duration": 12000,
+  "base_level": 1,
+  "potency": 2
+}

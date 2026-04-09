@@ -1,0 +1,8 @@
+{
+  "name": "Might Stone",
+  "color": "#CC3333",
+  "effect": "minecraft:strength",
+  "base_duration": 7200,
+  "base_level": 1,
+  "potency": 2
+}

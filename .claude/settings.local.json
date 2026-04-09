@@ -53,7 +53,10 @@
       "Bash(curl -s \"https://raw.githubusercontent.com/mickelus/tetra/1.20/src/main/java/se/mickelus/tetra/blocks/workbench/gui/GuiModuleMajor.java\")",
       "Bash(curl -s \"https://api.github.com/repos/mickelus/tetra/contents/src/main/java/se/mickelus/tetra?ref=1.20\")",
       "Bash(curl -s \"https://api.github.com/repos/mickelus/tetra/contents/src/main/java/se/mickelus/tetra/gui?ref=1.20\")",
-      "Bash(./gradlew build:*)"
+      "Bash(./gradlew build:*)",
+      "Bash(grep -r \"neoforge:components\" ~/.gradle/caches/*/files-*/net.neoforged/)",
+      "Bash(grep -r \"POTION\" ~/.gradle/caches/*/files-*/net/minecraft/world/item/component/)",
+      "Bash(grep -l \"count\" /Users/nate/Workspace/minecraft/personal/alchemical/src/main/resources/data/alchemical/recipe/*stone*.json)"
     ]
   }
 }

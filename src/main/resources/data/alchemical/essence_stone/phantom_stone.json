@@ -1,0 +1,8 @@
+{
+  "name": "Phantom Stone",
+  "color": "#AAAACC",
+  "effect": "minecraft:invisibility",
+  "base_duration": 6000,
+  "base_level": 1,
+  "potency": 2
+}

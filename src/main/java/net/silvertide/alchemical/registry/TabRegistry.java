@@ -9,8 +9,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.silvertide.alchemical.Alchemical;
-
-import java.util.List;
+import net.silvertide.alchemical.data.IngredientManager;
 
 public final class TabRegistry {
     private static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS =
@@ -22,13 +21,10 @@ public final class TabRegistry {
                     .title(Component.translatable("creativetab.alchemical_tab"))
                     .displayItems((parameters, output) -> {
                         output.accept(ItemRegistry.ELIXIR.get());
-                        // Default essence stones — one entry per built-in definition
-                        for (var id : List.of(
-                                Alchemical.id("regen_stone"),
-                                Alchemical.id("speed_stone")
-                        )) {
+                        // Dynamically add one entry per registered essence stone definition
+                        for (var def : IngredientManager.getAllStones()) {
                             ItemStack stone = new ItemStack(ItemRegistry.ESSENCE_STONE.get());
-                            stone.set(DataComponentRegistry.ESSENCE_STONE_TYPE.get(), id);
+                            stone.set(DataComponentRegistry.ESSENCE_STONE_TYPE.get(), def.id());
                             output.accept(stone);
                         }
                         output.accept(BlockRegistry.ATHANOR_ITEM.get());

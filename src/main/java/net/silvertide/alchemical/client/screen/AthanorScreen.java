@@ -83,7 +83,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
     private static final int C_INFO_ICON     = 0xFF999988;   // ⓘ icon color
     private static final int C_INFO_HOVER    = 0xFFCCBB88;   // ⓘ icon hover color
     private static final int C_DOT_FILLED    = 0xFFCC8800;
-    private static final int C_DOT_EMPTY     = 0xFF332211;
+    private static final int C_DOT_EMPTY     = 0xFF665544;
     private static final int C_DOT_PREVIEW   = 0xFF44AAFF;   // staged-ingredient slot preview (fits)
     private static final int C_DOT_OVERFLOW  = 0xFFCC2222;   // staged-ingredient slot preview (no room)
     private static final int C_WARNING       = 0xFFDD4422;   // not-enough-room warning text
@@ -135,6 +135,8 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
     @Override
     protected void init() {
         super.init();
+        // Shift the GUI a bit to the left — there's extra room on the right
+        leftPos -= 10;
         updateLabelPositions();
     }
 
@@ -255,14 +257,20 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
         g.pose().pushPose();
         g.pose().translate(-lpSlide, 0, 0);
 
-        // Elixir name + info icon
+        // Elixir name — left-aligned in the left panel
+        Component elixirName = elixir.getHoverName();
         g.pose().pushPose();
         g.pose().translate(px + LP_CONT_X, py + CONTENT_Y, 0);
         g.pose().scale(0.875f, 0.875f, 1f);
-        g.drawString(font, elixir.getHoverName(), 0, 0, withAlpha(C_ELIXIR_NAME, elixirAlpha), false);
+        g.drawString(font, elixirName, 0, 0, withAlpha(C_ELIXIR_NAME, elixirAlpha), false);
         g.pose().popPose();
 
-        // ⓘ info icon — right edge of left panel, same line as name
+        // Separator line beneath the name
+        int nameSepY = py + CONTENT_Y + 9;
+        g.fill(px + LP_CONT_X, nameSepY, px + LP_RIGHT - 2, nameSepY + 1,
+               withAlpha(C_ELIXIR_NAME, elixirAlpha / 3));
+
+        // ⓘ info icon — right edge of left panel, below the name
         if (hasContent) {
             infoIconX = px + LP_RIGHT - 8;
             infoIconY = py + CONTENT_Y;
@@ -273,8 +281,8 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
         }
 
         // ── Left panel content ─────────────────────────────────────────────────
-        int contentStartY = py + CONTENT_Y + 11;
-        int listBot       = py + CLEAR_LABEL_GUI_Y - 10;
+        int contentStartY = py + CONTENT_Y + 13;
+        int listBot       = py + CLEAR_LABEL_GUI_Y - 3;
 
         List<ItemStack> stones    = elixir.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
         List<ItemStack> tinctures = elixir.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of());
@@ -283,17 +291,21 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
         // ── Section 1: Capacity dots ──────────────────────────────────────────
         int dotStartX  = px + LP_CONT_X;
         int dotStartY  = contentStartY;
-        int dotsPerRow = (LP_RIGHT - LP_CONT_X) / 7;
-        int dotRows    = capacity > 0 ? ((capacity - 1) / dotsPerRow + 1) : 0;
+        int dotsPerRow = 15;
+        int dotSpacing = 8;   // px between dot origins (5px diamond + 3px gap)
+        int maxRows    = 3;
+        int dotRows    = capacity > 0 ? Math.min(maxRows, (capacity - 1) / dotsPerRow + 1) : 0;
         lastDotsPerRow = dotsPerRow;
         lastDotRows    = dotRows;
         lastDotScreenX = dotStartX;
         lastDotScreenY = dotStartY;
 
-        for (int i = 0; i < capacity; i++) {
+        int maxDots = dotsPerRow * maxRows;
+        int drawCount = Math.min(capacity, maxDots);
+        for (int i = 0; i < drawCount; i++) {
             int color = withAlpha(i < loadedCount ? C_DOT_FILLED : C_DOT_EMPTY, elixirAlpha);
-            drawDiamond(g, dotStartX + (i % dotsPerRow) * 7,
-                           dotStartY + (i / dotsPerRow) * 7, color);
+            drawDiamond(g, dotStartX + (i % dotsPerRow) * dotSpacing,
+                           dotStartY + (i / dotsPerRow) * dotSpacing, color);
         }
 
         if (!atCapacity) {
@@ -303,15 +315,15 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
                 int potency      = IngredientUtil.getPotency(menu.getIngredientStack());
                 boolean fits     = loadedCount + potency <= capacity;
                 int previewColor = fits ? C_DOT_PREVIEW : C_DOT_OVERFLOW;
-                for (int i = loadedCount; i < Math.min(loadedCount + potency, capacity); i++) {
-                    drawDiamond(g, dotStartX + (i % dotsPerRow) * 7,
-                                   dotStartY + (i / dotsPerRow) * 7,
+                for (int i = loadedCount; i < Math.min(loadedCount + potency, maxDots); i++) {
+                    drawDiamond(g, dotStartX + (i % dotsPerRow) * dotSpacing,
+                                   dotStartY + (i / dotsPerRow) * dotSpacing,
                                    withAlpha(previewColor, ingPrevA));
                 }
             }
         }
 
-        int curY = dotStartY + dotRows * 7 + 5;
+        int curY = dotStartY + dotRows * dotSpacing + 5;
 
         // ── Section 2: Overview — per-stone effective stats ───────────────────
         curY = drawOverviewTab(g, px, curY, listBot, elixirAlpha, elixir, iElixir,
@@ -414,10 +426,10 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
         // Only show while animation is settled — positions are offset during slide
         boolean settled = elixirP >= 1f;
 
-        // Dot-area tooltip: "Loaded: X / Y"
+        // Dot-area tooltip: "Potency: X / Y"
         if (settled && hasElixir && lastDotRows > 0) {
-            if (mouseX >= lastDotScreenX && mouseX < lastDotScreenX + lastDotsPerRow * 7
-                    && mouseY >= lastDotScreenY && mouseY < lastDotScreenY + lastDotRows * 7) {
+            if (mouseX >= lastDotScreenX && mouseX < lastDotScreenX + lastDotsPerRow * 8
+                    && mouseY >= lastDotScreenY && mouseY < lastDotScreenY + lastDotRows * 8) {
                 IElixir ie = (IElixir) menu.getElixirStack().getItem();
                 g.renderTooltip(font, Component.translatable("gui.alchemical.athanor.capacity",
                         ie.getLoadedCount(menu.getElixirStack()), ie.getCapacity()), mouseX, mouseY);
@@ -506,11 +518,13 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
         g.fill(x + e,     y + e - s + 1, x + e + 1, y + e, color);
     }
 
-    /** 3×3 pixel diamond centred at (cx, cy). */
+    /** 5×5 pixel diamond centred at (cx+2, cy+2). */
     private void drawDiamond(GuiGraphics g, int cx, int cy, int color) {
-        g.fill(cx + 1, cy,     cx + 2, cy + 1, color);
-        g.fill(cx,     cy + 1, cx + 3, cy + 2, color);
-        g.fill(cx + 1, cy + 2, cx + 2, cy + 3, color);
+        g.fill(cx + 2, cy,     cx + 3, cy + 1, color);   // top
+        g.fill(cx + 1, cy + 1, cx + 4, cy + 2, color);   // row 2
+        g.fill(cx,     cy + 2, cx + 5, cy + 3, color);    // middle (widest)
+        g.fill(cx + 1, cy + 3, cx + 4, cy + 4, color);   // row 4
+        g.fill(cx + 2, cy + 4, cx + 3, cy + 5, color);   // bottom
     }
 
     /**
@@ -518,8 +532,8 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
      * Produces cols+1 vertical lines and rows+1 horizontal lines.
      */
     private void drawSlotGrid(GuiGraphics g, int startX, int startY, int cols, int rows, int color) {
-        int totalW = cols * 18;
-        int totalH = rows * 18;
+        int totalW = cols * 18 + 1;  // +1 to include the rightmost vertical line pixel
+        int totalH = rows * 18 + 1;  // +1 to include the bottommost horizontal line pixel
         // Horizontal lines (top edge of each row + bottom edge of last row)
         for (int row = 0; row <= rows; row++) {
             g.fill(startX, startY + row * 18, startX + totalW, startY + row * 18 + 1, color);
@@ -647,47 +661,48 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
                     .map(e -> e.getDisplayName().getString() + " " + toRoman(finalLevel))
                     .orElse(resolveDisplayName(stoneStack, IngredientType.ESSENCE_STONE).getString());
 
-            // Effect + Level at 0.875 scale
+            // Effect + Level at 0.75 scale
             int nameColor = isActive ? C_ELIXIR_NAME : C_LEFT_TEXT;
             g.pose().pushPose();
             g.pose().translate(px + LP_CONT_X + 2, curY, 0);
-            g.pose().scale(0.875f, 0.875f, 1f);
+            g.pose().scale(0.75f, 0.75f, 1f);
             g.drawString(font, effectLine, 0, 0, withAlpha(nameColor, alpha), false);
             g.pose().popPose();
 
-            // "[Active]" suffix at 75% scale on the same line
+            // "[Active]" suffix at 0.625 scale on the same line
             if (isActive) {
-                int suffixX = px + LP_CONT_X + 2 + (int)(font.width(effectLine) * 0.875f) + 3;
+                int suffixX = px + LP_CONT_X + 2 + (int)(font.width(effectLine) * 0.75f) + 3;
                 g.pose().pushPose();
                 g.pose().translate(suffixX, curY + 1, 0);
-                g.pose().scale(0.75f, 0.75f, 1f);
+                g.pose().scale(0.625f, 0.625f, 1f);
                 g.drawString(font, "[Active]", 0, 0, withAlpha(C_TYPE_LABEL, alpha), false);
                 g.pose().popPose();
             }
-            curY += 9;
+            curY += 7;
 
-            // Duration + Cooldown at 75% scale
-            if (curY + 8 <= listBot) {
+            // Duration at 0.625 scale
+            if (curY + 6 <= listBot) {
                 g.pose().pushPose();
                 g.pose().translate(px + LP_CONT_X + 4, curY, 0);
-                g.pose().scale(0.75f, 0.75f, 1f);
+                g.pose().scale(0.625f, 0.625f, 1f);
                 g.drawString(font, "Duration: " + ticksToSeconds(finalDuration) + "s", 0, 0,
                         withAlpha(C_STATS, alpha), false);
                 g.pose().popPose();
-                curY += 8;
+                curY += 6;
             }
-            if (curY + 8 <= listBot) {
+            // Cooldown at 0.625 scale
+            if (curY + 6 <= listBot) {
                 g.pose().pushPose();
                 g.pose().translate(px + LP_CONT_X + 4, curY, 0);
-                g.pose().scale(0.75f, 0.75f, 1f);
+                g.pose().scale(0.625f, 0.625f, 1f);
                 g.drawString(font, "Cooldown: " + finalCooldown + "s", 0, 0,
                         withAlpha(C_STATS, alpha), false);
                 g.pose().popPose();
-                curY += 8;
+                curY += 6;
             }
 
             // Gap between stones
-            if (i < stones.size() - 1) curY += 4;
+            if (i < stones.size() - 1) curY += 2;
         }
         return curY;
     }
@@ -846,7 +861,9 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
             case INVALID_INGREDIENT -> Component.translatable("gui.alchemical.athanor.invalid_ingredient");
             case AT_CAPACITY        -> Component.translatable("gui.alchemical.athanor.at_capacity");
             case DUPLICATE_STONE    -> Component.translatable("gui.alchemical.athanor.duplicate_stone");
-            case NEEDS_STONE       -> Component.translatable("gui.alchemical.athanor.needs_stone");
+            case NEEDS_STONE        -> Component.translatable("gui.alchemical.athanor.needs_stone");
+            case NEEDS_TINCTURE     -> Component.translatable("gui.alchemical.athanor.needs_tincture");
+            case MAX_STONES         -> Component.translatable("gui.alchemical.athanor.max_stones");
             case CAN_ADD            -> null;
         };
     }
