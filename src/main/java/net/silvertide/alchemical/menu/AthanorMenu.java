@@ -44,7 +44,8 @@ public class AthanorMenu extends AbstractContainerMenu {
         NO_INGREDIENT,
         INVALID_INGREDIENT,
         AT_CAPACITY,
-        DUPLICATE_STONE
+        DUPLICATE_STONE,
+        NEEDS_STONE
     }
 
     private final AthanorBlockEntity blockEntity;
@@ -173,6 +174,12 @@ public class AthanorMenu extends AbstractContainerMenu {
         if (elixir.isEmpty() || !(elixir.getItem() instanceof IElixir iElixir)) return ValidationResult.NO_ELIXIR;
         if (ingredient.isEmpty()) return ValidationResult.NO_INGREDIENT;
         if (IngredientType.of(ingredient) == IngredientType.NONE) return ValidationResult.INVALID_INGREDIENT;
+
+        // Require at least one essence stone before tinctures or catalysts can be added
+        IngredientType ingType = IngredientType.of(ingredient);
+        if (ingType != IngredientType.ESSENCE_STONE && iElixir.getStoneCount(elixir) < 1)
+            return ValidationResult.NEEDS_STONE;
+
         if (iElixir.getLoadedCount(elixir) + IngredientUtil.getPotency(ingredient) > iElixir.getCapacity())
             return ValidationResult.AT_CAPACITY;
 

@@ -14,7 +14,6 @@ import net.silvertide.alchemical.util.IngredientUtil;
 import net.silvertide.alchemical.menu.AthanorMenu;
 import net.silvertide.alchemical.records.EssenceStoneDefinition;
 import net.silvertide.alchemical.registry.DataComponentRegistry;
-import com.mojang.math.Axis;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import org.jetbrains.annotations.NotNull;
 
@@ -32,11 +31,10 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
     private static final int INGREDIENT_SLOT_X = 130;
     private static final int INGREDIENT_SLOT_Y = 16;
 
-    // Left info panel (elixir name, vertical tabs, content)
+    // Left info panel (elixir name + unified overview/ingredient list)
     private static final int LP_X       = 1;
     private static final int LP_RIGHT   = 66;
-    private static final int TAB_COL_W  = 11;   // width of the vertical tab sidebar
-    private static final int LP_CONT_X  = LP_X + TAB_COL_W + 2;  // content column start (x=14)
+    private static final int LP_CONT_X  = LP_X + 2;  // content column start (x=3)
 
     // Right ingredient panel (ingredient slot + [Add] + stats)
     // Only rendered when elixir has room
@@ -57,12 +55,11 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
     // [Clear] — anchored to bottom of left panel
     private static final int CLEAR_LABEL_GUI_X = LP_CONT_X;
     private static final int CLEAR_LABEL_GUI_Y = PANEL_BOT - 12;
-    // [Add] — to the RIGHT of the ingredient slot, vertically centred on it
-    private static final int ADD_LABEL_GUI_X   = INGREDIENT_SLOT_X + 20;  // 4px gap after slot
-    private static final int ADD_LABEL_GUI_Y   = INGREDIENT_SLOT_Y + 5;   // (18-9)/2 ≈ centre
+    // [Add] — centred below the ingredient slot
+    private static final int ADD_LABEL_GUI_Y   = INGREDIENT_SLOT_Y + 20;  // 2px gap below slot
 
-    // Right panel info — starts where [Add] used to sit (below the slot)
-    private static final int RP_INFO_Y         = INGREDIENT_SLOT_Y + 22;
+    // Right-of-slot info area (ingredient name, type, stats) — left-aligned
+    private static final int RP_INFO_X         = INGREDIENT_SLOT_X + 22;  // 4px gap after slot right edge (slot ends at +18)
 
     // ── Colors ────────────────────────────────────────────────────────────────
 
@@ -83,8 +80,8 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
     private static final int C_TYPE_LABEL    = 0xFF7788AA;
     private static final int C_INGR_NAME     = 0xFFDDDDDD;
     private static final int C_STATS         = 0xFFCCCCBB;
-    private static final int C_TAB_ACTIVE    = 0xFFCCBB88;
-    private static final int C_TAB_INACTIVE  = 0xFF665544;
+    private static final int C_INFO_ICON     = 0xFF999988;   // ⓘ icon color
+    private static final int C_INFO_HOVER    = 0xFFCCBB88;   // ⓘ icon hover color
     private static final int C_DOT_FILLED    = 0xFFCC8800;
     private static final int C_DOT_EMPTY     = 0xFF332211;
     private static final int C_DOT_PREVIEW   = 0xFF44AAFF;   // staged-ingredient slot preview (fits)
@@ -114,20 +111,9 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
     private int lastDotScreenX = 0;
     private int lastDotScreenY = 0;
 
-    // ── Left-panel hover lines (rebuilt each render frame) ───────────────────
+    // ── Info icon position (updated each render frame) ────────────────────────
 
-    private final List<HoverLine> hoverLines = new ArrayList<>();
-    private record HoverLine(int screenX, int screenY, int width, List<Component> tooltip) {}
-
-    // ── Left panel tab ────────────────────────────────────────────────────────
-
-    private enum LeftTab { INGREDIENTS, OVERVIEW }
-    private LeftTab leftTab = LeftTab.OVERVIEW;
-
-    // Screen-space positions for vertical tab column (set each render frame)
-    private int tabColScreenX;
-    private int ovTabScreenY,  ingTabScreenY;
-    private int ovTabH,        ingTabH;
+    private int infoIconX, infoIconY;
 
     // ── Cached state ──────────────────────────────────────────────────────────
 
@@ -153,7 +139,9 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
     }
 
     private void updateLabelPositions() {
-        addScreenX   = leftPos + ADD_LABEL_GUI_X;
+        // [Add] centred under the ingredient slot (18px wide), nudged 1px left
+        int addBtnW  = (int)(font.width("Add") * 0.8f) + 4;
+        addScreenX   = leftPos + INGREDIENT_SLOT_X + 9 - addBtnW / 2 - 1;
         addScreenY   = topPos  + ADD_LABEL_GUI_Y;
         clearScreenX = leftPos + CLEAR_LABEL_GUI_X;
         clearScreenY = topPos  + CLEAR_LABEL_GUI_Y;
@@ -267,120 +255,67 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
         g.pose().pushPose();
         g.pose().translate(-lpSlide, 0, 0);
 
-        // Elixir name above the tab column, aligned to content column
+        // Elixir name + info icon
         g.pose().pushPose();
         g.pose().translate(px + LP_CONT_X, py + CONTENT_Y, 0);
         g.pose().scale(0.875f, 0.875f, 1f);
         g.drawString(font, elixir.getHoverName(), 0, 0, withAlpha(C_ELIXIR_NAME, elixirAlpha), false);
         g.pose().popPose();
 
-        // ── Vertical tab column ────────────────────────────────────────────────
-        final float TAB_SCALE = 0.70f;
-        final int   TAB_PAD   = 3;
-        int tabTopY = py + CONTENT_Y + 11;
-        int tabColX = px + LP_X;
+        // ⓘ info icon — right edge of left panel, same line as name
+        if (hasContent) {
+            infoIconX = px + LP_RIGHT - 8;
+            infoIconY = py + CONTENT_Y;
+            boolean hoverInfo = mouseX >= infoIconX && mouseX < infoIconX + 7
+                             && mouseY >= infoIconY && mouseY < infoIconY + 7;
+            int iconColor = withAlpha(hoverInfo ? C_INFO_HOVER : C_INFO_ICON, elixirAlpha);
+            drawInfoIcon(g, infoIconX, infoIconY, iconColor);
+        }
 
-        String ovLabel  = "Overview";
-        String ingLabel = "Ingredients";
-        int ovTextW  = (int)(font.width(ovLabel)  * TAB_SCALE);
-        int ingTextW = (int)(font.width(ingLabel) * TAB_SCALE);
-        ovTabH  = ovTextW  + TAB_PAD * 2;
-        ingTabH = ingTextW + TAB_PAD * 2;
-
-        int ovTabY  = tabTopY;
-        int ingTabY = ovTabY + ovTabH + 3;
-
-        tabColScreenX = tabColX;
-        ovTabScreenY  = ovTabY;
-        ingTabScreenY = ingTabY;
-
-        int ovColor  = leftTab == LeftTab.OVERVIEW    ? C_TAB_ACTIVE : C_TAB_INACTIVE;
-        int ingColor = leftTab == LeftTab.INGREDIENTS ? C_TAB_ACTIVE : C_TAB_INACTIVE;
-
-        drawBorder(g, tabColX, ovTabY,  TAB_COL_W, ovTabH,  withAlpha(ovColor,  elixirAlpha));
-        drawBorder(g, tabColX, ingTabY, TAB_COL_W, ingTabH, withAlpha(ingColor, elixirAlpha));
-
-        // Text rotated -90° so it reads bottom-to-top (standard left-sidebar orientation).
-        // After translate(tx,ty) + rotate(-90°) + scale(s):
-        //   screen pos = (tx + localY*s, ty - localX*s)
-        // Text (0..W at local y=0) spans screen x=[tx, tx+9s], y=[ty-W*s, ty]
-        int textTx = tabColX + TAB_COL_W / 2 - (int)(9 * TAB_SCALE / 2);
-
-        g.pose().pushPose();
-        g.pose().translate(textTx, ovTabY + TAB_PAD + ovTextW, 0);
-        g.pose().mulPose(Axis.ZP.rotationDegrees(-90f));
-        g.pose().scale(TAB_SCALE, TAB_SCALE, 1f);
-        g.drawString(font, ovLabel, 0, 0, withAlpha(ovColor, elixirAlpha), false);
-        g.pose().popPose();
-
-        g.pose().pushPose();
-        g.pose().translate(textTx, ingTabY + TAB_PAD + ingTextW, 0);
-        g.pose().mulPose(Axis.ZP.rotationDegrees(-90f));
-        g.pose().scale(TAB_SCALE, TAB_SCALE, 1f);
-        g.drawString(font, ingLabel, 0, 0, withAlpha(ingColor, elixirAlpha), false);
-        g.pose().popPose();
-
-        // Vertical separator between tab column and content
-        int tabSepX = tabColX + TAB_COL_W + 1;
-        g.fill(tabSepX, tabTopY, tabSepX + 1, py + PANEL_BOT - 14,
-               withAlpha(C_TAB_INACTIVE, elixirAlpha));
-
-        // ── Tab content (right of tab column) ─────────────────────────────────
-        hoverLines.clear();
-        int contentStartY = tabTopY;
+        // ── Left panel content ─────────────────────────────────────────────────
+        int contentStartY = py + CONTENT_Y + 11;
         int listBot       = py + CLEAR_LABEL_GUI_Y - 10;
 
         List<ItemStack> stones    = elixir.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
         List<ItemStack> tinctures = elixir.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of());
         List<ItemStack> catalysts = elixir.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.of());
 
-        if (leftTab == LeftTab.INGREDIENTS) {
-            lastDotsPerRow = 0;
-            lastDotRows    = 0;
-            int maxW = LP_RIGHT - LP_CONT_X - 2;
-            int curY = contentStartY;
-            curY = drawSection(g, px, curY, listBot, elixirAlpha, maxW, "ESSENCE STONES", stones,  IngredientType.ESSENCE_STONE);
-            if (!tinctures.isEmpty() && !stones.isEmpty() && curY < listBot) curY += 3;
-            curY = drawSection(g, px, curY, listBot, elixirAlpha, maxW, "TINCTURES",      tinctures, IngredientType.TINCTURE);
-            if (!catalysts.isEmpty() && (!stones.isEmpty() || !tinctures.isEmpty()) && curY < listBot) curY += 3;
-            drawSection(g, px, curY, listBot, elixirAlpha, maxW, "CATALYSTS", catalysts, IngredientType.CATALYST);
+        // ── Section 1: Capacity dots ──────────────────────────────────────────
+        int dotStartX  = px + LP_CONT_X;
+        int dotStartY  = contentStartY;
+        int dotsPerRow = (LP_RIGHT - LP_CONT_X) / 7;
+        int dotRows    = capacity > 0 ? ((capacity - 1) / dotsPerRow + 1) : 0;
+        lastDotsPerRow = dotsPerRow;
+        lastDotRows    = dotRows;
+        lastDotScreenX = dotStartX;
+        lastDotScreenY = dotStartY;
 
-        } else {
-            // Capacity dots aligned to content column
-            int dotStartX  = px + LP_CONT_X;
-            int dotStartY  = contentStartY;
-            int dotsPerRow = (LP_RIGHT - LP_CONT_X) / 7;
-            int dotRows    = capacity > 0 ? ((capacity - 1) / dotsPerRow + 1) : 0;
-            lastDotsPerRow = dotsPerRow;
-            lastDotRows    = dotRows;
-            lastDotScreenX = dotStartX;
-            lastDotScreenY = dotStartY;
+        for (int i = 0; i < capacity; i++) {
+            int color = withAlpha(i < loadedCount ? C_DOT_FILLED : C_DOT_EMPTY, elixirAlpha);
+            drawDiamond(g, dotStartX + (i % dotsPerRow) * 7,
+                           dotStartY + (i / dotsPerRow) * 7, color);
+        }
 
-            for (int i = 0; i < capacity; i++) {
-                int color = withAlpha(i < loadedCount ? C_DOT_FILLED : C_DOT_EMPTY, elixirAlpha);
-                drawDiamond(g, dotStartX + (i % dotsPerRow) * 7,
-                               dotStartY + (i / dotsPerRow) * 7, color);
-            }
-
-            if (!atCapacity) {
-                float ingPrev  = easeOut(ingredientAnimStart);
-                int   ingPrevA = (int)(ingPrev * 255);
-                if (ingPrevA > 0 && !menu.getIngredientStack().isEmpty()) {
-                    int potency      = IngredientUtil.getPotency(menu.getIngredientStack());
-                    boolean fits     = loadedCount + potency <= capacity;
-                    int previewColor = fits ? C_DOT_PREVIEW : C_DOT_OVERFLOW;
-                    for (int i = loadedCount; i < Math.min(loadedCount + potency, capacity); i++) {
-                        drawDiamond(g, dotStartX + (i % dotsPerRow) * 7,
-                                       dotStartY + (i / dotsPerRow) * 7,
-                                       withAlpha(previewColor, ingPrevA));
-                    }
+        if (!atCapacity) {
+            float ingPrev  = easeOut(ingredientAnimStart);
+            int   ingPrevA = (int)(ingPrev * 255);
+            if (ingPrevA > 0 && !menu.getIngredientStack().isEmpty()) {
+                int potency      = IngredientUtil.getPotency(menu.getIngredientStack());
+                boolean fits     = loadedCount + potency <= capacity;
+                int previewColor = fits ? C_DOT_PREVIEW : C_DOT_OVERFLOW;
+                for (int i = loadedCount; i < Math.min(loadedCount + potency, capacity); i++) {
+                    drawDiamond(g, dotStartX + (i % dotsPerRow) * 7,
+                                   dotStartY + (i / dotsPerRow) * 7,
+                                   withAlpha(previewColor, ingPrevA));
                 }
             }
-
-            int overviewStartY = dotStartY + dotRows * 7 + 5;
-            drawOverviewTab(g, px, overviewStartY, listBot, elixirAlpha, elixir, iElixir,
-                            tinctures, catalysts);
         }
+
+        int curY = dotStartY + dotRows * 7 + 5;
+
+        // ── Section 2: Overview — per-stone effective stats ───────────────────
+        curY = drawOverviewTab(g, px, curY, listBot, elixirAlpha, elixir, iElixir,
+                        tinctures, catalysts);
 
         // [Clear] — only if elixir has content
         if (hasContent) {
@@ -397,7 +332,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
 
         // ── Right panel (only when not at capacity) ────────────────────────────
         if (!atCapacity) {
-            // [Add] button
+            // [Add] button — centred below the ingredient slot
             boolean canAdd  = cachedValidation == AthanorMenu.ValidationResult.CAN_ADD;
             boolean hoverAdd = isOverButton(mouseX, mouseY, addScreenX, addScreenY, font.width("Add"));
             int addColor = !canAdd   ? C_ADD_DISABLED
@@ -411,55 +346,51 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
                 if (reason != null) g.renderTooltip(font, reason, mouseX, mouseY);
             }
 
-            // Ingredient info (fades + slides in when ingredient is placed)
+            // Ingredient info — to the right of the slot (fades + slides in)
             float ingP = easeOut(ingredientAnimStart);
             if (ingP > 0f) {
                 int ingAlpha = (int)(ingP * 255);
                 ItemStack ingredient = menu.getIngredientStack();
                 if (!ingredient.isEmpty()) {
                     IngredientType type = IngredientType.of(ingredient);
-                    int rpX   = px + INGREDIENT_SLOT_X - 1;
-                    int infoY = py + RP_INFO_Y;
+                    int infoX = px + RP_INFO_X;
 
                     // Slide in from the left alongside the fade
                     float rpSlide = (1f - ingP) * 12f;
                     g.pose().pushPose();
                     g.pose().translate(-rpSlide, 0, 0);
 
-                    // Ingredient name at 0.875 scale
+                    // Ingredient name — left-aligned to the right of the slot
+                    Component displayName = resolveDisplayName(ingredient, type);
+                    int nameY = py + INGREDIENT_SLOT_Y + 5;  // vertically centred on slot
                     g.pose().pushPose();
-                    g.pose().translate(rpX, infoY, 0);
+                    g.pose().translate(infoX, nameY, 0);
                     g.pose().scale(0.875f, 0.875f, 1f);
-                    g.drawString(font, resolveDisplayName(ingredient, type), 0, 0,
+                    g.drawString(font, displayName, 0, 0,
                                  withAlpha(C_INGR_NAME, ingAlpha), false);
                     g.pose().popPose();
 
-                    // Separator line under the name
-                    int nameSepY = infoY + 9;
-                    int sepRight = px + RP_RIGHT - 2;
-                    g.fill(rpX, nameSepY, sepRight, nameSepY + 1, withAlpha(C_INGR_NAME, ingAlpha / 3));
-
-                    // Type label — slightly smaller (75 % scale) beneath the name
+                    // Type label — left-aligned, below the name
                     String typeLbl = switch (type) {
                         case ESSENCE_STONE -> "ESSENCE STONE";
                         case TINCTURE      -> "TINCTURE";
                         case CATALYST      -> "CATALYST";
                         default            -> "";
                     };
-                    int typeY = infoY + 12;
+                    int typeY = nameY + 10;
                     g.pose().pushPose();
-                    g.pose().translate(rpX, typeY, 0);
+                    g.pose().translate(infoX, typeY, 0);
                     g.pose().scale(0.75f, 0.75f, 1f);
                     g.drawString(font, typeLbl, 0, 0, withAlpha(C_TYPE_LABEL, ingAlpha), false);
                     g.pose().popPose();
 
-                    // Stats — below the scaled type label, drawn at 75% scale
+                    // Stats — left-aligned below the type label, at 75% scale
                     List<Component> stats = ingredientStats(ingredient, type);
                     int statY = typeY + 10;
                     for (Component stat : stats) {
                         if (statY + 8 > py + PANEL_BOT) break;
                         g.pose().pushPose();
-                        g.pose().translate(rpX, statY, 0);
+                        g.pose().translate(infoX, statY, 0);
                         g.pose().scale(0.75f, 0.75f, 1f);
                         g.drawString(font, stat, 0, 0, withAlpha(C_STATS, ingAlpha), false);
                         g.pose().popPose();
@@ -471,7 +402,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
                     if (tooLarge && statY + 9 <= py + PANEL_BOT) {
                         g.drawString(font,
                                 Component.translatable("gui.alchemical.athanor.no_room"),
-                                rpX, statY, withAlpha(C_WARNING, ingAlpha), false);
+                                infoX, statY, withAlpha(C_WARNING, ingAlpha), false);
                     }
 
                     g.pose().popPose(); // end ingredient info slide
@@ -493,14 +424,11 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
             }
         }
 
-        // Left-panel ingredient hover tooltips (truncated lines)
-        if (settled) {
-            for (HoverLine hl : hoverLines) {
-                if (mouseX >= hl.screenX() && mouseX < hl.screenX() + hl.width()
-                        && mouseY >= hl.screenY() && mouseY < hl.screenY() + 9) {
-                    g.renderComponentTooltip(font, hl.tooltip(), mouseX, mouseY);
-                    break;
-                }
+        // ⓘ info icon tooltip — full ingredient breakdown
+        if (settled && hasContent) {
+            if (mouseX >= infoIconX && mouseX < infoIconX + 7
+                    && mouseY >= infoIconY && mouseY < infoIconY + 7) {
+                g.renderComponentTooltip(font, buildIngredientTooltip(elixir), mouseX, mouseY);
             }
         }
     }
@@ -534,17 +462,6 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
                     }
                 }
 
-                // Vertical tab clicks
-                if (mouseX >= tabColScreenX && mouseX < tabColScreenX + TAB_COL_W) {
-                    if (mouseY >= ovTabScreenY && mouseY < ovTabScreenY + ovTabH) {
-                        leftTab = LeftTab.OVERVIEW;
-                        return true;
-                    }
-                    if (mouseY >= ingTabScreenY && mouseY < ingTabScreenY + ingTabH) {
-                        leftTab = LeftTab.INGREDIENTS;
-                        return true;
-                    }
-                }
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -653,12 +570,6 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
         return (color & 0x00FFFFFF) | (alpha << 24);
     }
 
-    // ── Hit test ──────────────────────────────────────────────────────────────
-
-    private boolean isOverLabel(double mx, double my, int lx, int ly, int lw) {
-        return mx >= lx && mx < lx + lw && my >= ly && my < ly + 9;
-    }
-
     // ── Left panel section drawing ────────────────────────────────────────────
 
     /**
@@ -666,16 +577,17 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
      * output (effect + level, duration, cooldown) after applying all tincture and
      * catalyst modifiers. The active stone is highlighted in gold with "[Active]".
      */
-    private void drawOverviewTab(GuiGraphics g, int px, int curY, int listBot, int alpha,
+    private int drawOverviewTab(GuiGraphics g, int px, int curY, int listBot, int alpha,
                                  ItemStack elixir, IElixir iElixir,
                                  List<ItemStack> tinctures, List<ItemStack> catalysts) {
         List<ItemStack> stones = elixir.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
         if (stones.isEmpty()) {
             if (curY + 9 <= listBot) {
                 g.drawString(font, Component.translatable("gui.alchemical.athanor.none"),
-                        px + LP_X + 2, curY, withAlpha(C_LEFT_TEXT, alpha), false);
+                        px + LP_CONT_X, curY, withAlpha(C_LEFT_TEXT, alpha), false);
+                curY += 9;
             }
-            return;
+            return curY;
         }
 
         int activeIndex = iElixir.getActiveStoneIndex(elixir);
@@ -736,7 +648,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
                     .orElse(resolveDisplayName(stoneStack, IngredientType.ESSENCE_STONE).getString());
 
             // Effect + Level at 0.875 scale
-            int nameColor = isActive ? C_TAB_ACTIVE : C_LEFT_TEXT;
+            int nameColor = isActive ? C_ELIXIR_NAME : C_LEFT_TEXT;
             g.pose().pushPose();
             g.pose().translate(px + LP_CONT_X + 2, curY, 0);
             g.pose().scale(0.875f, 0.875f, 1f);
@@ -745,7 +657,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
 
             // "[Active]" suffix at 75% scale on the same line
             if (isActive) {
-                int suffixX = px + LP_X + 2 + (int)(font.width(effectLine) * 0.875f) + 3;
+                int suffixX = px + LP_CONT_X + 2 + (int)(font.width(effectLine) * 0.875f) + 3;
                 g.pose().pushPose();
                 g.pose().translate(suffixX, curY + 1, 0);
                 g.pose().scale(0.75f, 0.75f, 1f);
@@ -777,90 +689,68 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
             // Gap between stones
             if (i < stones.size() - 1) curY += 4;
         }
-    }
-
-    /**
-     * Draws one labelled section (e.g. "ESSENCE STONES") with an item per line.
-     * Each line tries to show "Name — summary"; falls back to just name + hover tooltip.
-     * Returns the next available curY.
-     */
-    private int drawSection(GuiGraphics g, int px, int curY, int listBot,
-                            int alpha, int maxW, String header,
-                            List<ItemStack> items, IngredientType type) {
-        if (items.isEmpty() || curY + 8 > listBot) return curY;
-
-        // Section header at 75% scale
-        g.pose().pushPose();
-        g.pose().translate(px + LP_CONT_X, curY, 0);
-        g.pose().scale(0.75f, 0.75f, 1f);
-        g.drawString(font, header, 0, 0, withAlpha(C_TYPE_LABEL, alpha), false);
-        g.pose().popPose();
-        curY += 8;
-
-        for (ItemStack stack : items) {
-            if (curY + 8 > listBot) break;
-            String name    = resolveDisplayName(stack, type).getString();
-            String summary = buildInlineSummary(stack, type);
-            String full    = summary.isEmpty() ? name : name + " \u2014 " + summary;
-
-            int scaledMaxW = (int)(maxW / 0.875f);
-            String display = font.width(full) <= scaledMaxW ? full : name;
-            g.pose().pushPose();
-            g.pose().translate(px + LP_CONT_X + 2, curY, 0);
-            g.pose().scale(0.875f, 0.875f, 1f);
-            g.drawString(font, display, 0, 0, withAlpha(C_LEFT_TEXT, alpha), false);
-            g.pose().popPose();
-
-            if (display == name) {
-                List<Component> tooltip = ingredientStats(stack, type);
-                if (!tooltip.isEmpty()) {
-                    hoverLines.add(new HoverLine(leftPos + LP_CONT_X + 2, curY,
-                                                 (int)(font.width(name) * 0.875f), tooltip));
-                }
-            }
-            curY += 8;
-        }
         return curY;
     }
 
-    /**
-     * Returns a short one-line summary of what the ingredient does.
-     * For stones: the effect display name.
-     * For tinctures/catalysts: the first non-default modifier as a compact string.
-     */
-    private static String buildInlineSummary(ItemStack stack, IngredientType type) {
-        return switch (type) {
-            case ESSENCE_STONE -> {
-                var st = stack.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get());
-                if (st == null) yield "";
-                yield ClientIngredientData.getStone(st)
-                        .flatMap(def -> BuiltInRegistries.MOB_EFFECT.getOptional(def.effect())
-                                .map(e -> e.getDisplayName().getString()))
-                        .orElse("");
-            }
-            case TINCTURE -> ClientIngredientData.getTincture(stack.getItem())
-                    .map(d -> firstModifierSummary(d.effectDurationMultiplier(), d.effectDurationFlat(),
-                                                   d.effectLevelModifier(),
-                                                   d.elixirCooldownMultiplier(), d.elixirCooldownFlat()))
-                    .orElse("");
-            case CATALYST -> ClientIngredientData.getCatalyst(stack.getItem())
-                    .map(d -> firstModifierSummary(d.effectDurationMultiplier(), d.effectDurationFlat(),
-                                                   d.effectLevelModifier(),
-                                                   d.elixirCooldownMultiplier(), d.elixirCooldownFlat()))
-                    .orElse("");
-            default -> "";
-        };
+    /** Draws a small "i" inside a 7×7 pixel circle outline. */
+    private void drawInfoIcon(GuiGraphics g, int x, int y, int color) {
+        // 7×7 circle (rough pixel circle)
+        g.fill(x + 2, y,     x + 5, y + 1, color);  // top edge
+        g.fill(x + 1, y + 1, x + 2, y + 2, color);  // top-left
+        g.fill(x + 5, y + 1, x + 6, y + 2, color);  // top-right
+        g.fill(x,     y + 2, x + 1, y + 5, color);   // left edge
+        g.fill(x + 6, y + 2, x + 7, y + 5, color);   // right edge
+        g.fill(x + 1, y + 5, x + 2, y + 6, color);  // bottom-left
+        g.fill(x + 5, y + 5, x + 6, y + 6, color);  // bottom-right
+        g.fill(x + 2, y + 6, x + 5, y + 7, color);  // bottom edge
+        // "i" character inside — dot at (3,2), stem at (3,3)-(3,4)
+        g.fill(x + 3, y + 2, x + 4, y + 3, color);
+        g.fill(x + 3, y + 3, x + 4, y + 5, color);
     }
 
-    /** Returns the first non-default modifier as a compact string (e.g. "Dur ×1.50"). */
-    private static String firstModifierSummary(float durMult, int durFlat, int levelMod,
-                                                float cdMult, int cdFlat) {
-        if (durMult  != 1.0f) return String.format("Dur \u00d7%.2f", durMult);
-        if (durFlat  != 0)    return "Dur +" + durFlat + "t";
-        if (levelMod != 0)    return "Lvl +" + levelMod;
-        if (cdMult   != 1.0f) return String.format("CD \u00d7%.2f", cdMult);
-        if (cdFlat   != 0)    return "CD +" + cdFlat + "t";
-        return "";
+    /**
+     * Builds the full ingredient tooltip for the ⓘ icon.
+     * Groups ingredients by type with headers, names, and stat lines.
+     */
+    private List<Component> buildIngredientTooltip(ItemStack elixir) {
+        List<Component> lines = new ArrayList<>();
+        List<ItemStack> stones    = elixir.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
+        List<ItemStack> tinctures = elixir.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of());
+        List<ItemStack> catalysts = elixir.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.of());
+
+        if (!stones.isEmpty()) {
+            lines.add(Component.literal("Essence Stones").withStyle(s -> s.withColor(C_TYPE_LABEL)));
+            for (ItemStack stack : stones) {
+                lines.add(Component.literal("  " + resolveDisplayName(stack, IngredientType.ESSENCE_STONE).getString()));
+                for (Component stat : ingredientStats(stack, IngredientType.ESSENCE_STONE)) {
+                    lines.add(Component.literal("    ").append(stat.copy().withStyle(s -> s.withColor(C_STATS))));
+                }
+            }
+        }
+
+        if (!tinctures.isEmpty()) {
+            if (!lines.isEmpty()) lines.add(Component.empty());
+            lines.add(Component.literal("Tinctures").withStyle(s -> s.withColor(C_TYPE_LABEL)));
+            for (ItemStack stack : tinctures) {
+                lines.add(Component.literal("  " + resolveDisplayName(stack, IngredientType.TINCTURE).getString()));
+                for (Component stat : ingredientStats(stack, IngredientType.TINCTURE)) {
+                    lines.add(Component.literal("    ").append(stat.copy().withStyle(s -> s.withColor(C_STATS))));
+                }
+            }
+        }
+
+        if (!catalysts.isEmpty()) {
+            if (!lines.isEmpty()) lines.add(Component.empty());
+            lines.add(Component.literal("Catalysts").withStyle(s -> s.withColor(C_TYPE_LABEL)));
+            for (ItemStack stack : catalysts) {
+                lines.add(Component.literal("  " + resolveDisplayName(stack, IngredientType.CATALYST).getString()));
+                for (Component stat : ingredientStats(stack, IngredientType.CATALYST)) {
+                    lines.add(Component.literal("    ").append(stat.copy().withStyle(s -> s.withColor(C_STATS))));
+                }
+            }
+        }
+
+        return lines;
     }
 
     // ── Ingredient stats ──────────────────────────────────────────────────────
@@ -956,6 +846,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
             case INVALID_INGREDIENT -> Component.translatable("gui.alchemical.athanor.invalid_ingredient");
             case AT_CAPACITY        -> Component.translatable("gui.alchemical.athanor.at_capacity");
             case DUPLICATE_STONE    -> Component.translatable("gui.alchemical.athanor.duplicate_stone");
+            case NEEDS_STONE       -> Component.translatable("gui.alchemical.athanor.needs_stone");
             case CAN_ADD            -> null;
         };
     }

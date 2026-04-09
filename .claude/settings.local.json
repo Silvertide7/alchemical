@@ -52,7 +52,8 @@
       "Bash(curl -s \"https://api.github.com/repos/mickelus/mutil/contents/src/main/java/se/mickelus/mutil/gui?ref=1.20\")",
       "Bash(curl -s \"https://raw.githubusercontent.com/mickelus/tetra/1.20/src/main/java/se/mickelus/tetra/blocks/workbench/gui/GuiModuleMajor.java\")",
       "Bash(curl -s \"https://api.github.com/repos/mickelus/tetra/contents/src/main/java/se/mickelus/tetra?ref=1.20\")",
-      "Bash(curl -s \"https://api.github.com/repos/mickelus/tetra/contents/src/main/java/se/mickelus/tetra/gui?ref=1.20\")"
+      "Bash(curl -s \"https://api.github.com/repos/mickelus/tetra/contents/src/main/java/se/mickelus/tetra/gui?ref=1.20\")",
+      "Bash(./gradlew build:*)"
     ]
   }
 }
