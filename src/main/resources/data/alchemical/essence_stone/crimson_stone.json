@@ -2,7 +2,5 @@
   "name": "Crimson Stone",
   "color": "#FF6699",
   "effect": "minecraft:regeneration",
-  "base_duration": 7200,
-  "base_level": 1,
-  "potency": 2
+  "base_duration": 7200
 }

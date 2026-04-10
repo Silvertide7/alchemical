@@ -2,8 +2,5 @@
   "item": "minecraft:redstone",
   "name": "Redstone Catalyst",
   "elixir_cooldown_multiplier": 1.20,
-  "elixir_cooldown_flat": 0,
-  "effect_duration_multiplier": 1.50,
-  "effect_duration_flat": 0,
-  "effect_level_modifier": 0
+  "effect_duration_multiplier": 1.50
 }

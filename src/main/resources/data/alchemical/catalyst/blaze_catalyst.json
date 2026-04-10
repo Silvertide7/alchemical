@@ -2,9 +2,7 @@
   "item": "minecraft:blaze_powder",
   "name": "Blaze Catalyst",
   "elixir_cooldown_multiplier": 1.15,
-  "elixir_cooldown_flat": 0,
   "effect_duration_multiplier": 0.80,
-  "effect_duration_flat": 0,
   "effect_level_modifier": 1,
   "potency": 2
 }

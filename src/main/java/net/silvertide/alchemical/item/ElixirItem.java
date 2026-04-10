@@ -2,6 +2,7 @@ package net.silvertide.alchemical.item;
 
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.silvertide.alchemical.config.AlchemicalConfig;
 import net.silvertide.alchemical.data.ClientIngredientData;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -33,12 +34,10 @@ public class ElixirItem extends Item implements IElixir {
     private static final int DRINK_DURATION_TICKS = 32;
 
     private final int capacity;
-    private final int cooldownSeconds;
 
-    public ElixirItem(int capacity, int cooldownSeconds) {
+    public ElixirItem(int capacity) {
         super(new Item.Properties().stacksTo(1));
         this.capacity = capacity;
-        this.cooldownSeconds = cooldownSeconds;
     }
 
     @Override
@@ -68,7 +67,7 @@ public class ElixirItem extends Item implements IElixir {
             if (ClientElixirCooldownData.isOnCooldown(level.getGameTime())) {
                 if (ClientElixirCooldownData.tryMarkMessageSent(level.getGameTime())) {
                     player.sendSystemMessage(Component.translatable("message.alchemical.on_cooldown",
-                            ClientElixirCooldownData.getRemainingSeconds(level.getGameTime())));
+                            formatTime(ClientElixirCooldownData.getRemainingSeconds(level.getGameTime()))));
                 }
                 return InteractionResultHolder.fail(stack);
             }
@@ -122,7 +121,7 @@ public class ElixirItem extends Item implements IElixir {
                 });
             }
 
-            int effectiveCooldown = Math.max(0, (int)((cooldownSeconds + flatCooldown[0]) * cooldownMult[0]));
+            int effectiveCooldown = Math.max(0, (int)((getCooldownSeconds() + flatCooldown[0]) * cooldownMult[0]));
             ElixirAttachmentUtil.applyNewCooldown(player, effectiveCooldown);
         }
         // Return the same stack unmodified — elixir is never consumed
@@ -227,7 +226,7 @@ public class ElixirItem extends Item implements IElixir {
 
     @Override
     public int getCooldownSeconds() {
-        return cooldownSeconds;
+        return AlchemicalConfig.ELIXIR_COOLDOWN_SECONDS.get();
     }
 
     // appendHoverText is always client-side — no environment guard needed
@@ -258,13 +257,11 @@ public class ElixirItem extends Item implements IElixir {
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag flag) {
+        List<ItemStack> stones = stack.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
+
         if (Screen.hasShiftDown()) {
             List<ItemStack> tinctures = stack.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of());
-            List<ItemStack> stones = stack.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
             List<ItemStack> catalysts = stack.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.of());
-
-            tooltipComponents.add(Component.translatable("tooltip.alchemical.capacity",
-                    getLoadedCount(stack), capacity));
 
             if (tinctures.isEmpty() && stones.isEmpty() && catalysts.isEmpty()) {
                 tooltipComponents.add(Component.translatable("tooltip.alchemical.empty_flask"));
@@ -289,8 +286,27 @@ public class ElixirItem extends Item implements IElixir {
                         Component.translatable("tooltip.alchemical.catalyst", getIngredientDisplayName(c, IngredientType.CATALYST))));
             }
         } else {
+            if (!stones.isEmpty()) {
+                int activeIndex = getActiveStoneIndex(stack);
+                ItemStack activeStone = stones.get(activeIndex);
+                tooltipComponents.add(Component.translatable("tooltip.alchemical.active_stone",
+                        getIngredientDisplayName(activeStone, IngredientType.ESSENCE_STONE)));
+            } else {
+                tooltipComponents.add(Component.translatable("tooltip.alchemical.empty_flask"));
+            }
             tooltipComponents.add(Component.translatable("tooltip.alchemical.elixir_hint"));
         }
         super.appendHoverText(stack, context, tooltipComponents, flag);
+    }
+
+    private static String formatTime(int totalSeconds) {
+        int hours = totalSeconds / 3600;
+        int minutes = (totalSeconds % 3600) / 60;
+        int seconds = totalSeconds % 60;
+        StringBuilder sb = new StringBuilder();
+        if (hours > 0) sb.append(hours).append("h ");
+        if (hours > 0 || minutes > 0) sb.append(minutes).append("m ");
+        sb.append(seconds).append("s");
+        return sb.toString();
     }
 }

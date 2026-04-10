@@ -2,8 +2,5 @@
   "item": "minecraft:experience_bottle",
   "name": "Arcane Extract",
   "effect_duration_multiplier": 1.10,
-  "effect_duration_flat": 0,
-  "elixir_cooldown_multiplier": 0.90,
-  "elixir_cooldown_flat": 0,
-  "effect_level_modifier": 0
+  "elixir_cooldown_multiplier": 0.90
 }

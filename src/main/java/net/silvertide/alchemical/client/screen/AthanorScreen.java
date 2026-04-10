@@ -52,9 +52,8 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
     private static final int CORNER = 4;
 
     // Label positions (GUI-relative)
-    // [Clear] — anchored to bottom of left panel
-    private static final int CLEAR_LABEL_GUI_X = LP_CONT_X;
-    private static final int CLEAR_LABEL_GUI_Y = PANEL_BOT - 12;
+    // [Empty Elixir] — anchored to bottom of left panel, centered
+    private static final int CLEAR_LABEL_GUI_Y = PANEL_BOT - 14;
     // [Add] — centred below the ingredient slot
     private static final int ADD_LABEL_GUI_Y   = INGREDIENT_SLOT_Y + 20;  // 2px gap below slot
 
@@ -71,8 +70,8 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
     private static final int C_LINE_LIT           = 0xFFBB8844;   // warm highlight when ingredient present
     private static final int C_ELIXIR_NAME   = 0xFFCCBB88;
     private static final int C_LEFT_TEXT     = 0xFF999988;
-    private static final int C_CLEAR_IDLE    = 0xFF885533;
-    private static final int C_CLEAR_HOVER   = 0xFFCC7755;
+    private static final int C_CLEAR_IDLE    = 0xFF994444;
+    private static final int C_CLEAR_HOVER   = 0xFFCC6655;
     private static final int C_CLEAR_CONFIRM = 0xFFDD4422;
     private static final int C_ADD_IDLE      = 0xFF7799AA;
     private static final int C_ADD_HOVER     = 0xFFCCEEFF;
@@ -142,11 +141,14 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
 
     private void updateLabelPositions() {
         // [Add] centred under the ingredient slot (18px wide), nudged 1px left
-        int addBtnW  = (int)(font.width("Add") * 0.8f) + 4;
+        int addBtnW  = (int)(font.width("Add") * 0.8f) + 6;
         addScreenX   = leftPos + INGREDIENT_SLOT_X + 9 - addBtnW / 2 - 1;
         addScreenY   = topPos  + ADD_LABEL_GUI_Y;
-        clearScreenX = leftPos + CLEAR_LABEL_GUI_X;
-        clearScreenY = topPos  + CLEAR_LABEL_GUI_Y;
+        // [Empty Elixir] centred in the left panel
+        int clearBtnW = (int)(font.width("Empty Elixir") * 0.8f) + 6;
+        int lpCenter  = leftPos + LP_X + (LP_RIGHT - LP_X) / 2;
+        clearScreenX  = lpCenter - clearBtnW / 2;
+        clearScreenY  = topPos  + CLEAR_LABEL_GUI_Y;
     }
 
     // ── Tick ─────────────────────────────────────────────────────────────────
@@ -331,7 +333,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
 
         // [Clear] — only if elixir has content
         if (hasContent) {
-            String clearText = confirmPending ? "Confirm?" : "Clear";
+            String clearText = confirmPending ? "Confirm?" : "Empty Elixir";
             boolean hoverClear = isOverButton(mouseX, mouseY, clearScreenX, clearScreenY,
                                               font.width(clearText));
             int clearColor = confirmPending ? C_CLEAR_CONFIRM
@@ -466,7 +468,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
 
                 // Clear button
                 if (loadedCount > 0) {
-                    String clearText = confirmPending ? "Confirm?" : "Clear";
+                    String clearText = confirmPending ? "Confirm?" : "Empty Elixir";
                     if (isOverButton(mouseX, mouseY, clearScreenX, clearScreenY,
                                      font.width(clearText))) {
                         handleClearClick();
@@ -554,14 +556,14 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
 
     /**
      * Draws a bordered button with 0.8× scaled text.
-     * Layout: 1px border + 2px horizontal pad, 2px top pad + 1px bottom pad.
-     * Total size: (font.width(text) × 0.8 + 4) × 11.
+     * Layout: 1px border + 2px pad on all sides.
+     * Total size: (font.width(text) × 0.8 + 6) × 13.
      */
     private void drawButton(GuiGraphics g, String text, int x, int y, int color, int alpha) {
-        int btnW = (int)(font.width(text) * 0.8f) + 4;
-        drawBorder(g, x, y, btnW, 11, withAlpha(color, alpha));
+        int btnW = (int)(font.width(text) * 0.8f) + 6;
+        drawBorder(g, x, y, btnW, 13, withAlpha(color, alpha));
         g.pose().pushPose();
-        g.pose().translate(x + 2, y + 2, 0);
+        g.pose().translate(x + 3, y + 3, 0);
         g.pose().scale(0.8f, 0.8f, 1f);
         g.drawString(font, text, 0, 0, withAlpha(color, alpha), false);
         g.pose().popPose();
@@ -569,7 +571,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
 
     /** Hit-test for a bordered button drawn by drawButton(). */
     private boolean isOverButton(double mx, double my, int x, int y, int textWidth) {
-        return mx >= x && mx < x + (int)(textWidth * 0.8f) + 4 && my >= y && my < y + 11;
+        return mx >= x && mx < x + (int)(textWidth * 0.8f) + 6 && my >= y && my < y + 13;
     }
 
     // ── Animation ─────────────────────────────────────────────────────────────
@@ -685,7 +687,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
                 g.pose().pushPose();
                 g.pose().translate(px + LP_CONT_X + 4, curY, 0);
                 g.pose().scale(0.625f, 0.625f, 1f);
-                g.drawString(font, "Duration: " + ticksToSeconds(finalDuration) + "s", 0, 0,
+                g.drawString(font, "Duration: " + ticksToTime(finalDuration), 0, 0,
                         withAlpha(C_STATS, alpha), false);
                 g.pose().popPose();
                 curY += 6;
@@ -695,7 +697,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
                 g.pose().pushPose();
                 g.pose().translate(px + LP_CONT_X + 4, curY, 0);
                 g.pose().scale(0.625f, 0.625f, 1f);
-                g.drawString(font, "Cooldown: " + finalCooldown + "s", 0, 0,
+                g.drawString(font, "Cooldown: " + secondsToTime(finalCooldown), 0, 0,
                         withAlpha(C_STATS, alpha), false);
                 g.pose().popPose();
                 curY += 6;
@@ -798,7 +800,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
         lines.add(Component.literal("Potency: " + def.potency()));
         BuiltInRegistries.MOB_EFFECT.getOptional(def.effect()).ifPresent(effect ->
                 lines.add(Component.literal(effect.getDisplayName().getString() + " " + toRoman(def.baseLevel()))));
-        lines.add(Component.literal("Effect Duration: " + ticksToSeconds(def.baseDuration()) + "s"));
+        lines.add(Component.literal("Effect Duration: " + ticksToTime(def.baseDuration())));
         if (def.elixirCooldownMultiplier() != 1.0f)
             lines.add(Component.literal(String.format("Elixir Cooldown \u00d7%.2f", def.elixirCooldownMultiplier())));
         if (def.elixirCooldownFlat() != 0) {
@@ -815,7 +817,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
         if (durMult  != 1.0f) lines.add(Component.literal(String.format("Effect Duration \u00d7%.2f", durMult)));
         if (durFlat  != 0) {
             String sign = durFlat > 0 ? "+" : "";
-            lines.add(Component.literal("Effect Duration " + sign + ticksToSeconds(durFlat) + "s"));
+            lines.add(Component.literal("Effect Duration " + sign + ticksToTime(durFlat)));
         }
         if (levelMod != 0) {
             String sign = levelMod > 0 ? "+" : "";
@@ -829,10 +831,21 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
         return lines;
     }
 
-    /** Converts ticks to a seconds string — no decimal when whole (e.g. "15"), one decimal otherwise ("10.5"). */
-    private static String ticksToSeconds(int ticks) {
-        float s = ticks / 20f;
-        return (s == (int) s) ? String.valueOf((int) s) : String.format("%.1f", s);
+    /** Converts ticks to a human-friendly time string like "8m 0s" or "1m 30s". */
+    private static String ticksToTime(int ticks) {
+        int totalSeconds = ticks / 20;
+        int minutes = totalSeconds / 60;
+        int seconds = totalSeconds % 60;
+        if (minutes > 0) return minutes + "m " + seconds + "s";
+        return seconds + "s";
+    }
+
+    /** Converts seconds to a human-friendly time string like "10m 30s". */
+    private static String secondsToTime(int totalSeconds) {
+        int minutes = totalSeconds / 60;
+        int seconds = totalSeconds % 60;
+        if (minutes > 0) return minutes + "m " + seconds + "s";
+        return seconds + "s";
     }
 
     // ── Display name resolution ────────────────────────────────────────────────

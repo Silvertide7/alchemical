@@ -3,6 +3,5 @@
   "color": "#888899",
   "effect": "minecraft:resistance",
   "base_duration": 6000,
-  "base_level": 1,
   "potency": 3
 }

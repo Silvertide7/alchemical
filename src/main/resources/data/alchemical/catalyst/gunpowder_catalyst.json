@@ -2,8 +2,5 @@
   "item": "minecraft:gunpowder",
   "name": "Volatile Catalyst",
   "elixir_cooldown_multiplier": 1.45,
-  "elixir_cooldown_flat": 0,
-  "effect_duration_multiplier": 1.65,
-  "effect_duration_flat": 0,
-  "effect_level_modifier": 0
+  "effect_duration_multiplier": 1.65
 }

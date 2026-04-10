@@ -3,7 +3,6 @@ package net.silvertide.alchemical.block;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -54,18 +53,5 @@ public class AthanorBlock extends BaseEntityBlock {
             serverPlayer.openMenu(blockEntity, pos);
         }
         return InteractionResult.CONSUME;
-    }
-
-    // --- Drop contents on break ---
-
-    @Override
-    public void onRemove(BlockState state, @NotNull Level level, @NotNull BlockPos pos,
-                         BlockState newState, boolean movedByPiston) {
-        if (!state.is(newState.getBlock())) {
-            if (level.getBlockEntity(pos) instanceof AthanorBlockEntity blockEntity) {
-                Containers.dropContents(level, pos, blockEntity.getContainer());
-            }
-        }
-        super.onRemove(state, level, pos, newState, movedByPiston);
     }
 }

@@ -2,7 +2,5 @@
   "name": "Ember Stone",
   "color": "#FF8833",
   "effect": "minecraft:fire_resistance",
-  "base_duration": 12000,
-  "base_level": 1,
-  "potency": 2
+  "base_duration": 12000
 }

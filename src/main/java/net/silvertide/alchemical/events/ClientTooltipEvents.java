@@ -16,12 +16,17 @@ public final class ClientTooltipEvents {
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event) {
         var stack = event.getItemStack();
-        boolean isIngredient = stack.has(DataComponentRegistry.ESSENCE_STONE_TYPE.get())
-                || ClientIngredientData.getTincture(stack.getItem()).isPresent()
-                || ClientIngredientData.getCatalyst(stack.getItem()).isPresent();
+        String typeKey = null;
+        if (stack.has(DataComponentRegistry.ESSENCE_STONE_TYPE.get())) {
+            typeKey = "tooltip.alchemical.ingredient.essence_stone";
+        } else if (ClientIngredientData.getTincture(stack.getItem()).isPresent()) {
+            typeKey = "tooltip.alchemical.ingredient.tincture";
+        } else if (ClientIngredientData.getCatalyst(stack.getItem()).isPresent()) {
+            typeKey = "tooltip.alchemical.ingredient.catalyst";
+        }
 
-        if (isIngredient) {
-            event.getToolTip().add(Component.translatable("tooltip.alchemical.usable_in_elixir")
+        if (typeKey != null) {
+            event.getToolTip().add(Component.translatable(typeKey)
                     .withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.ITALIC));
         }
     }

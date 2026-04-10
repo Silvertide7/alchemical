@@ -2,7 +2,5 @@
   "name": "Zephyr Stone",
   "color": "#EEEEFF",
   "effect": "minecraft:slow_falling",
-  "base_duration": 9600,
-  "base_level": 1,
-  "potency": 2
+  "base_duration": 9600
 }

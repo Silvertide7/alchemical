@@ -2,7 +2,5 @@
   "name": "Swift Stone",
   "color": "#7BBFFF",
   "effect": "minecraft:speed",
-  "base_duration": 9600,
-  "base_level": 1,
-  "potency": 2
+  "base_duration": 9600
 }

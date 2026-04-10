@@ -1,9 +1,5 @@
 {
   "item": "minecraft:potion",
   "name": "Aqueous Solution",
-  "effect_duration_multiplier": 1.25,
-  "effect_duration_flat": 0,
-  "elixir_cooldown_multiplier": 1.0,
-  "elixir_cooldown_flat": 0,
-  "effect_level_modifier": 0
+  "effect_duration_multiplier": 1.25
 }

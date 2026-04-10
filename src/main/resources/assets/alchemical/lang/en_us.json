@@ -4,6 +4,7 @@
 
   "creativetab.alchemical_tab": "Alchemical",
 
+  "tooltip.alchemical.active_stone": "Active Stone: %s",
   "tooltip.alchemical.elixir_hint": "Press SHIFT for more info.",
   "tooltip.alchemical.empty_flask": "The flask is empty.",
   "tooltip.alchemical.capacity": "Capacity: %s / %s",
@@ -14,7 +15,7 @@
   "tooltip.alchemical.shift_to_switch": "Shift + Use to switch active stone.",
   "tooltip.alchemical.stone_switched": "Active stone: %s",
 
-  "message.alchemical.on_cooldown": "You are still recovering from your last elixir. (%ss remaining)",
+  "message.alchemical.on_cooldown": "You are still recovering from your last elixir. (%s remaining)",
   "message.alchemical.flask_not_ready": "Your flask needs at least one Essence Stone and one Tincture.",
 
   "block.alchemical.athanor": "Athanor",
@@ -40,5 +41,7 @@
   "gui.alchemical.athanor.entry.stone_active": "- %s [Active]",
   "gui.alchemical.athanor.none": "No ingredients added.",
 
-  "tooltip.alchemical.usable_in_elixir": "May be used in an Elixir."
+  "tooltip.alchemical.ingredient.essence_stone": "Elixir Ingredient: Essence Stone",
+  "tooltip.alchemical.ingredient.tincture": "Elixir Ingredient: Tincture",
+  "tooltip.alchemical.ingredient.catalyst": "Elixir Ingredient: Catalyst"
 }
