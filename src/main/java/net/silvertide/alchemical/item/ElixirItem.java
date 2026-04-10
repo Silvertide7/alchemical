@@ -1,5 +1,6 @@
 package net.silvertide.alchemical.item;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.silvertide.alchemical.config.AlchemicalConfig;
@@ -260,30 +261,81 @@ public class ElixirItem extends Item implements IElixir {
         List<ItemStack> stones = stack.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
 
         if (Screen.hasShiftDown()) {
-            List<ItemStack> tinctures = stack.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of());
-            List<ItemStack> catalysts = stack.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.of());
-
-            if (tinctures.isEmpty() && stones.isEmpty() && catalysts.isEmpty()) {
+            if (stones.isEmpty()) {
                 tooltipComponents.add(Component.translatable("tooltip.alchemical.empty_flask"));
             } else {
-                tinctures.forEach(t -> tooltipComponents.add(
-                        Component.translatable("tooltip.alchemical.tincture", getIngredientDisplayName(t, IngredientType.TINCTURE))));
-
+                List<ItemStack> tinctures = stack.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of());
+                List<ItemStack> catalysts = stack.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.of());
                 int activeIndex = getActiveStoneIndex(stack);
+                ItemStack activeStoneStack = stones.get(activeIndex);
+                var stoneType = activeStoneStack.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get());
+
+                // Compute effective stats for the active stone
+                if (stoneType != null) {
+                    ClientIngredientData.getStone(stoneType).ifPresent(def -> {
+                        // Aggregate tincture + catalyst modifiers
+                        float durMult = 1.0f;
+                        int durFlat = 0;
+                        int levelMod = 0;
+                        float cdMult = def.elixirCooldownMultiplier();
+                        int cdFlat = def.elixirCooldownFlat();
+
+                        for (ItemStack t : tinctures) {
+                            var td = ClientIngredientData.getTincture(t.getItem());
+                            if (td.isPresent()) {
+                                durMult *= td.get().effectDurationMultiplier();
+                                durFlat += td.get().effectDurationFlat();
+                                levelMod += td.get().effectLevelModifier();
+                                cdMult *= td.get().elixirCooldownMultiplier();
+                                cdFlat += td.get().elixirCooldownFlat();
+                            }
+                        }
+                        for (ItemStack c : catalysts) {
+                            var cd = ClientIngredientData.getCatalyst(c.getItem());
+                            if (cd.isPresent()) {
+                                durMult *= cd.get().effectDurationMultiplier();
+                                durFlat += cd.get().effectDurationFlat();
+                                levelMod += cd.get().effectLevelModifier();
+                                cdMult *= cd.get().elixirCooldownMultiplier();
+                                cdFlat += cd.get().elixirCooldownFlat();
+                            }
+                        }
+
+                        int finalDuration = Math.max(1, (int)((def.baseDuration() + durFlat) * durMult));
+                        int finalLevel = Math.max(1, def.baseLevel() + levelMod);
+                        int finalCooldown = Math.max(0, (int)((getCooldownSeconds() + cdFlat) * cdMult));
+
+                        String effectName = BuiltInRegistries.MOB_EFFECT.getOptional(def.effect())
+                                .map(e -> e.getDisplayName().getString())
+                                .orElse("Unknown");
+
+                        tooltipComponents.add(Component.literal("Effect: " + effectName + " " + toRoman(finalLevel))
+                                .withStyle(ChatFormatting.GRAY));
+                        tooltipComponents.add(Component.literal("Duration: " + formatTicks(finalDuration))
+                                .withStyle(ChatFormatting.GRAY));
+                        tooltipComponents.add(Component.literal("Cooldown: " + formatTime(finalCooldown))
+                                .withStyle(ChatFormatting.GRAY));
+                    });
+                }
+
+                // List all stones
+                if (stones.size() > 1) {
+                    tooltipComponents.add(Component.empty());
+                }
                 for (int i = 0; i < stones.size(); i++) {
                     Component name = getIngredientDisplayName(stones.get(i), IngredientType.ESSENCE_STONE);
                     if (i == activeIndex) {
-                        tooltipComponents.add(Component.translatable("tooltip.alchemical.essence_stone_active", name));
+                        tooltipComponents.add(Component.literal(name.getString())
+                                .withStyle(ChatFormatting.GOLD));
                     } else {
-                        tooltipComponents.add(Component.translatable("tooltip.alchemical.essence_stone", name));
+                        tooltipComponents.add(Component.literal(name.getString())
+                                .withStyle(ChatFormatting.DARK_GRAY));
                     }
                 }
                 if (stones.size() > 1) {
-                    tooltipComponents.add(Component.translatable("tooltip.alchemical.shift_to_switch"));
+                    tooltipComponents.add(Component.translatable("tooltip.alchemical.shift_to_switch")
+                            .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
                 }
-
-                catalysts.forEach(c -> tooltipComponents.add(
-                        Component.translatable("tooltip.alchemical.catalyst", getIngredientDisplayName(c, IngredientType.CATALYST))));
             }
         } else {
             if (!stones.isEmpty()) {
@@ -297,6 +349,18 @@ public class ElixirItem extends Item implements IElixir {
             tooltipComponents.add(Component.translatable("tooltip.alchemical.elixir_hint"));
         }
         super.appendHoverText(stack, context, tooltipComponents, flag);
+    }
+
+    private static String formatTicks(int ticks) {
+        return formatTime(ticks / 20);
+    }
+
+    private static String toRoman(int n) {
+        return switch (n) {
+            case 1 -> "I"; case 2 -> "II"; case 3 -> "III"; case 4 -> "IV"; case 5 -> "V";
+            case 6 -> "VI"; case 7 -> "VII"; case 8 -> "VIII"; case 9 -> "IX"; case 10 -> "X";
+            default -> String.valueOf(n);
+        };
     }
 
     private static String formatTime(int totalSeconds) {
