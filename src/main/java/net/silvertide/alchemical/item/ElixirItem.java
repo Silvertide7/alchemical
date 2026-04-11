@@ -141,7 +141,7 @@ public class ElixirItem extends Item implements IElixir {
         int finalAmplifier = Math.max(0, (stone.baseLevel() - 1) + mods.levelMod());
 
         return BuiltInRegistries.MOB_EFFECT.getOptional(stone.effect())
-                .map(effect -> new MobEffectInstance(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect), finalDuration, finalAmplifier))
+                .map(effect -> new MobEffectInstance(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect), finalDuration, finalAmplifier, false, false, true))
                 .map(List::of)
                 .orElse(List.of());
     }

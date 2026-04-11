@@ -241,7 +241,14 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
 
         ItemStack elixir = menu.getElixirStack();
         boolean hasElixir = !elixir.isEmpty() && elixir.getItem() instanceof IElixir;
-        if (!hasElixir) return;
+        if (!hasElixir) {
+            // Hint text below the empty elixir slot
+            Component hint = Component.translatable("gui.alchemical.athanor.place_elixir");
+            int hintX = leftPos + ELIXIR_SLOT_X + 9 - (int)(font.width(hint) * 0.75f) / 2;
+            int hintY = topPos + ELIXIR_SLOT_Y + 22;
+            drawScaledString(g, hint, hintX, hintY, 0.75f, C_LEFT_TEXT);
+            return;
+        }
 
         IElixir iElixir     = (IElixir) elixir.getItem();
         int loadedCount     = iElixir.getLoadedCount(elixir);

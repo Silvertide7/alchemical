@@ -23,7 +23,8 @@ public final class BlockRegistry {
                     .strength(3.5f)
                     .sound(SoundType.STONE)
                     .requiresCorrectToolForDrops()
-                    .noOcclusion()));
+                    .noOcclusion()
+                    .lightLevel(state -> 13)));
 
     public static final DeferredHolder<Item, BlockItem> ATHANOR_ITEM = ITEMS.register("athanor",
             () -> new BlockItem(ATHANOR.get(), new Item.Properties()));

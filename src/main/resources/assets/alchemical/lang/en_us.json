@@ -18,9 +18,12 @@
   "message.alchemical.on_cooldown": "You are still recovering from your last elixir. (%s remaining)",
   "message.alchemical.flask_not_ready": "Your flask needs at least one Essence Stone and one Tincture.",
 
+  "command.alchemical.clearcooldown.success": "Cleared elixir cooldown for %s.",
+
   "block.alchemical.athanor": "Athanor",
   "container.alchemical.athanor": "Athanor",
 
+  "gui.alchemical.athanor.place_elixir": "Place an elixir",
   "gui.alchemical.athanor.add": "Add",
   "gui.alchemical.athanor.clear": "Empty Elixir",
   "gui.alchemical.athanor.clear_confirm": "Confirm?",
