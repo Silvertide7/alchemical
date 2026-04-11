@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "CAC",
+    "CFC",
+    "NBN"
+  ],
+  "key": {
+    "C": { "item": "minecraft:copper_ingot" },
+    "A": { "item": "minecraft:cauldron" },
+    "F": { "item": "minecraft:furnace" },
+    "N": { "item": "minecraft:blackstone" },
+    "B": { "item": "minecraft:blaze_rod" }
+  },
+  "result": {
+    "id": "alchemical:athanor",
+    "count": 1
+  }
+}
