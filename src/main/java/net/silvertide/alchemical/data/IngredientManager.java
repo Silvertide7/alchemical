@@ -7,6 +7,7 @@ import net.silvertide.alchemical.records.EssenceStoneDefinition;
 import net.silvertide.alchemical.records.TinctureDefinition;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -55,14 +56,14 @@ public final class IngredientManager {
     }
 
     public static Collection<EssenceStoneDefinition> getAllStones() {
-        return STONES.values();
+        return Collections.unmodifiableCollection(STONES.values());
     }
 
     public static Collection<TinctureDefinition> getAllTinctures() {
-        return TINCTURES.values();
+        return Collections.unmodifiableCollection(TINCTURES.values());
     }
 
     public static Collection<CatalystDefinition> getAllCatalysts() {
-        return CATALYSTS.values();
+        return Collections.unmodifiableCollection(CATALYSTS.values());
     }
 }

@@ -56,7 +56,8 @@
       "Bash(./gradlew build:*)",
       "Bash(grep -r \"neoforge:components\" ~/.gradle/caches/*/files-*/net.neoforged/)",
       "Bash(grep -r \"POTION\" ~/.gradle/caches/*/files-*/net/minecraft/world/item/component/)",
-      "Bash(grep -l \"count\" /Users/nate/Workspace/minecraft/personal/alchemical/src/main/resources/data/alchemical/recipe/*stone*.json)"
+      "Bash(grep -l \"count\" /Users/nate/Workspace/minecraft/personal/alchemical/src/main/resources/data/alchemical/recipe/*stone*.json)",
+      "Bash(python3 /tmp/analyze.py)"
     ]
   }
 }

@@ -7,6 +7,7 @@ public final class AlchemicalConfig {
     public static final ModConfigSpec.DoubleValue ESSENCE_STONE_BREAK_CHANCE;
     public static final ModConfigSpec.IntValue ELIXIR_COOLDOWN_SECONDS;
     public static final ModConfigSpec.IntValue ELIXIR_CAPACITY;
+    public static final ModConfigSpec.IntValue MAX_ESSENCE_STONES;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -20,6 +21,9 @@ public final class AlchemicalConfig {
         ELIXIR_CAPACITY = builder
                 .comment("Maximum potency capacity of an elixir flask. Default: 7. Max 45.")
                 .defineInRange("elixirCapacity", 7, 1, 45);
+        MAX_ESSENCE_STONES = builder
+                .comment("Maximum number of essence stones that can be loaded into a single elixir. Default: 3.")
+                .defineInRange("maxEssenceStones", 3, 1, 10);
         builder.pop();
         SERVER_SPEC = builder.build();
     }

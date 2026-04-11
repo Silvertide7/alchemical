@@ -18,13 +18,11 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
 import net.silvertide.alchemical.client.ClientElixirCooldownData;
-import net.silvertide.alchemical.data.IngredientManager;
-import net.silvertide.alchemical.records.CatalystDefinition;
 import net.silvertide.alchemical.records.EssenceStoneDefinition;
-import net.silvertide.alchemical.records.TinctureDefinition;
 import net.silvertide.alchemical.registry.DataComponentRegistry;
 import net.silvertide.alchemical.util.ElixirAttachmentUtil;
-import net.silvertide.alchemical.util.IngredientUtil;
+import net.silvertide.alchemical.util.ElixirCalcUtil;
+import net.silvertide.alchemical.util.FormattingUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -85,45 +83,33 @@ public class ElixirItem extends Item implements IElixir {
             List<MobEffectInstance> effects = deriveEffect(stack);
             effects.forEach(player::addEffect);
 
-            // Aggregate cooldown modifiers from all loaded ingredients
-            List<ItemStack> catalystStacks = stack.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.of());
-            List<ItemStack> tinctureStacks = stack.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of());
-            List<ItemStack> stoneStacks = stack.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
-
-            // Accumulate cooldown modifiers — use array wrappers for use in lambdas
-            float[] cooldownMult = {1.0f};
-            int[] flatCooldown = {0};
-
-            // Active stone contributes its cooldown modifier
-            if (!stoneStacks.isEmpty()) {
-                ItemStack activeStoneStack = stoneStacks.get(getActiveStoneIndex(stack));
-                var stoneType = activeStoneStack.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get());
-                if (stoneType != null) {
-                    IngredientManager.getStone(stoneType).ifPresent(def -> {
-                        cooldownMult[0] *= def.elixirCooldownMultiplier();
-                        flatCooldown[0] += def.elixirCooldownFlat();
-                    });
-                }
-            }
-
-            for (ItemStack tinctureStack : tinctureStacks) {
-                IngredientManager.getTincture(tinctureStack.getItem()).ifPresent(def -> {
-                    cooldownMult[0] *= def.elixirCooldownMultiplier();
-                    flatCooldown[0] += def.elixirCooldownFlat();
-                });
-            }
-            for (ItemStack catalystStack : catalystStacks) {
-                IngredientManager.getCatalyst(catalystStack.getItem()).ifPresent(def -> {
-                    cooldownMult[0] *= def.elixirCooldownMultiplier();
-                    flatCooldown[0] += def.elixirCooldownFlat();
-                });
-            }
-
-            int effectiveCooldown = Math.max(0, (int)((getCooldownSeconds() + flatCooldown[0]) * cooldownMult[0]));
+            int effectiveCooldown = computeCooldown(stack);
             ElixirAttachmentUtil.applyNewCooldown(player, effectiveCooldown);
         }
-        // Return the same stack unmodified — elixir is never consumed
         return stack;
+    }
+
+    /**
+     * Computes the effective cooldown in seconds for this elixir, combining the active stone's
+     * cooldown modifier with all tincture/catalyst modifiers.
+     */
+    private int computeCooldown(ItemStack stack) {
+        List<ItemStack> stoneStacks = stack.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
+        List<ItemStack> tinctureStacks = stack.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of());
+        List<ItemStack> catalystStacks = stack.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.of());
+
+        ElixirCalcUtil.ModifierResult mods = ElixirCalcUtil.computeSharedModifiers(tinctureStacks, catalystStacks);
+
+        if (!stoneStacks.isEmpty()) {
+            ItemStack activeStoneStack = stoneStacks.get(getActiveStoneIndex(stack));
+            Optional<EssenceStoneDefinition> stoneDef = ElixirCalcUtil.resolveStone(activeStoneStack);
+            if (stoneDef.isPresent()) {
+                return ElixirCalcUtil.computeEffectiveCooldown(getCooldownSeconds(), stoneDef.get(), mods);
+            }
+        }
+
+        // Fallback: apply only tincture/catalyst cooldown modifiers (no stone modifier)
+        return Math.max(0, (int) ((getCooldownSeconds() + mods.cooldownFlat()) * mods.cooldownMult()));
     }
 
     @Override
@@ -145,41 +131,14 @@ public class ElixirItem extends Item implements IElixir {
         if (stones.isEmpty() || tinctures.isEmpty()) return List.of();
 
         ItemStack activeStoneStack = stones.get(getActiveStoneIndex(stack));
-        var stoneType = activeStoneStack.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get());
-        if (stoneType == null) return List.of();
-        Optional<EssenceStoneDefinition> stoneDef = IngredientManager.getStone(stoneType);
+        Optional<EssenceStoneDefinition> stoneDef = ElixirCalcUtil.resolveStone(activeStoneStack);
         if (stoneDef.isEmpty()) return List.of();
 
         EssenceStoneDefinition stone = stoneDef.get();
+        ElixirCalcUtil.ModifierResult mods = ElixirCalcUtil.computeSharedModifiers(tinctures, catalysts);
 
-        // Collect tincture and catalyst definitions
-        List<TinctureDefinition> tinctureDefinitions = new ArrayList<>();
-        for (ItemStack tinctureStack : tinctures) {
-            IngredientManager.getTincture(tinctureStack.getItem()).ifPresent(tinctureDefinitions::add);
-        }
-        List<CatalystDefinition> catalystDefinitions = new ArrayList<>();
-        for (ItemStack catalystStack : catalysts) {
-            IngredientManager.getCatalyst(catalystStack.getItem()).ifPresent(catalystDefinitions::add);
-        }
-
-        // Aggregate duration and level modifiers from tinctures + catalysts
-        float totalDurationMult = 1.0f;
-        int totalDurationFlat = 0;
-        int totalLevelMod = 0;
-
-        for (TinctureDefinition def : tinctureDefinitions) {
-            totalDurationMult *= def.effectDurationMultiplier();
-            totalDurationFlat += def.effectDurationFlat();
-            totalLevelMod += def.effectLevelModifier();
-        }
-        for (CatalystDefinition def : catalystDefinitions) {
-            totalDurationMult *= def.effectDurationMultiplier();
-            totalDurationFlat += def.effectDurationFlat();
-            totalLevelMod += def.effectLevelModifier();
-        }
-
-        int finalDuration = Math.max(1, (int)((stone.baseDuration() + totalDurationFlat) * totalDurationMult));
-        int finalAmplifier = Math.max(0, (stone.baseLevel() - 1) + totalLevelMod);
+        int finalDuration = ElixirCalcUtil.computeEffectiveDuration(stone, mods);
+        int finalAmplifier = Math.max(0, (stone.baseLevel() - 1) + mods.levelMod());
 
         return BuiltInRegistries.MOB_EFFECT.getOptional(stone.effect())
                 .map(effect -> new MobEffectInstance(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect), finalDuration, finalAmplifier))
@@ -191,7 +150,6 @@ public class ElixirItem extends Item implements IElixir {
     public int getActiveStoneIndex(ItemStack stack) {
         int index = stack.getOrDefault(DataComponentRegistry.ACTIVE_STONE_INDEX.get(), 0);
         int count = getStoneCount(stack);
-        // Clamp in case a stone was removed and the saved index is now out of bounds
         return count > 0 ? Math.min(index, count - 1) : 0;
     }
 
@@ -209,11 +167,11 @@ public class ElixirItem extends Item implements IElixir {
     public int getLoadedCount(ItemStack stack) {
         int total = 0;
         for (ItemStack s : stack.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.<ItemStack>of()))
-            total += IngredientUtil.getPotency(s);
+            total += net.silvertide.alchemical.util.IngredientUtil.getPotency(s);
         for (ItemStack s : stack.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.<ItemStack>of()))
-            total += IngredientUtil.getPotency(s);
+            total += net.silvertide.alchemical.util.IngredientUtil.getPotency(s);
         for (ItemStack s : stack.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.<ItemStack>of()))
-            total += IngredientUtil.getPotency(s);
+            total += net.silvertide.alchemical.util.IngredientUtil.getPotency(s);
         return total;
     }
 
@@ -227,7 +185,88 @@ public class ElixirItem extends Item implements IElixir {
         return AlchemicalConfig.ELIXIR_COOLDOWN_SECONDS.get();
     }
 
-    // appendHoverText is always client-side — no environment guard needed
+    // ── Tooltip ──────────────────────────────────────────────────────────────
+
+    @Override
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag flag) {
+        if (Screen.hasShiftDown()) {
+            buildShiftTooltip(stack, tooltipComponents);
+        } else {
+            buildDefaultTooltip(stack, tooltipComponents);
+        }
+        super.appendHoverText(stack, context, tooltipComponents, flag);
+    }
+
+    /** Detailed view: computed stats for the active stone + stone list. */
+    private void buildShiftTooltip(ItemStack stack, List<Component> tooltipComponents) {
+        List<ItemStack> stones = stack.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
+
+        if (stones.isEmpty()) {
+            tooltipComponents.add(Component.translatable("tooltip.alchemical.empty_flask"));
+            return;
+        }
+
+        List<ItemStack> tinctures = stack.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of());
+        List<ItemStack> catalysts = stack.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.of());
+        int activeIndex = getActiveStoneIndex(stack);
+        ItemStack activeStoneStack = stones.get(activeIndex);
+
+        ElixirCalcUtil.resolveStone(activeStoneStack).ifPresent(def -> {
+            ElixirCalcUtil.ModifierResult mods = ElixirCalcUtil.computeSharedModifiers(tinctures, catalysts);
+
+            int finalDuration = ElixirCalcUtil.computeEffectiveDuration(def, mods);
+            int finalLevel = ElixirCalcUtil.computeEffectiveLevel(def, mods);
+            int finalCooldown = ElixirCalcUtil.computeEffectiveCooldown(getCooldownSeconds(), def, mods);
+
+            String effectName = BuiltInRegistries.MOB_EFFECT.getOptional(def.effect())
+                    .map(e -> e.getDisplayName().getString())
+                    .orElse("Unknown");
+
+            tooltipComponents.add(Component.literal("Effect: " + effectName + " " + toRoman(finalLevel))
+                    .withStyle(ChatFormatting.GRAY));
+            tooltipComponents.add(Component.literal("Duration: " + formatTicks(finalDuration))
+                    .withStyle(ChatFormatting.GRAY));
+            tooltipComponents.add(Component.literal("Cooldown: " + formatTime(finalCooldown))
+                    .withStyle(ChatFormatting.GRAY));
+        });
+
+        // List all stones
+        if (stones.size() > 1) {
+            tooltipComponents.add(Component.empty());
+        }
+        for (int i = 0; i < stones.size(); i++) {
+            Component name = getIngredientDisplayName(stones.get(i), IngredientType.ESSENCE_STONE);
+            if (i == activeIndex) {
+                tooltipComponents.add(Component.literal(name.getString())
+                        .withStyle(ChatFormatting.GOLD));
+            } else {
+                tooltipComponents.add(Component.literal(name.getString())
+                        .withStyle(ChatFormatting.DARK_GRAY));
+            }
+        }
+        if (stones.size() > 1) {
+            tooltipComponents.add(Component.translatable("tooltip.alchemical.shift_to_switch")
+                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+        }
+    }
+
+    /** Default view: active stone name + shift hint. */
+    private void buildDefaultTooltip(ItemStack stack, List<Component> tooltipComponents) {
+        List<ItemStack> stones = stack.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
+
+        if (!stones.isEmpty()) {
+            int activeIndex = getActiveStoneIndex(stack);
+            ItemStack activeStone = stones.get(activeIndex);
+            tooltipComponents.add(Component.translatable("tooltip.alchemical.active_stone",
+                    getIngredientDisplayName(activeStone, IngredientType.ESSENCE_STONE)));
+        } else {
+            tooltipComponents.add(Component.translatable("tooltip.alchemical.empty_flask"));
+        }
+        tooltipComponents.add(Component.translatable("tooltip.alchemical.elixir_hint"));
+    }
+
+    // ── Display name resolution (client-side) ────────────────────────────────
+
     private static Component getIngredientDisplayName(ItemStack stack, IngredientType type) {
         Optional<String> customName = switch (type) {
             case TINCTURE -> ClientIngredientData.getTincture(stack.getItem()).flatMap(d -> d.name());
@@ -243,6 +282,8 @@ public class ElixirItem extends Item implements IElixir {
         return customName.<Component>map(Component::literal).orElseGet(stack::getHoverName);
     }
 
+    // ── Stone cycling ────────────────────────────────────────────────────────
+
     private void cycleActiveStone(Player player, ItemStack stack) {
         int next = (getActiveStoneIndex(stack) + 1) % getStoneCount(stack);
         stack.set(DataComponentRegistry.ACTIVE_STONE_INDEX.get(), next);
@@ -253,121 +294,17 @@ public class ElixirItem extends Item implements IElixir {
                 stones.get(next).getHoverName()));
     }
 
-    @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag flag) {
-        List<ItemStack> stones = stack.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
-
-        if (Screen.hasShiftDown()) {
-            if (stones.isEmpty()) {
-                tooltipComponents.add(Component.translatable("tooltip.alchemical.empty_flask"));
-            } else {
-                List<ItemStack> tinctures = stack.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of());
-                List<ItemStack> catalysts = stack.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.of());
-                int activeIndex = getActiveStoneIndex(stack);
-                ItemStack activeStoneStack = stones.get(activeIndex);
-                var stoneType = activeStoneStack.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get());
-
-                // Compute effective stats for the active stone
-                if (stoneType != null) {
-                    ClientIngredientData.getStone(stoneType).ifPresent(def -> {
-                        // Aggregate tincture + catalyst modifiers
-                        float durMult = 1.0f;
-                        int durFlat = 0;
-                        int levelMod = 0;
-                        float cdMult = def.elixirCooldownMultiplier();
-                        int cdFlat = def.elixirCooldownFlat();
-
-                        for (ItemStack t : tinctures) {
-                            var td = ClientIngredientData.getTincture(t.getItem());
-                            if (td.isPresent()) {
-                                durMult *= td.get().effectDurationMultiplier();
-                                durFlat += td.get().effectDurationFlat();
-                                levelMod += td.get().effectLevelModifier();
-                                cdMult *= td.get().elixirCooldownMultiplier();
-                                cdFlat += td.get().elixirCooldownFlat();
-                            }
-                        }
-                        for (ItemStack c : catalysts) {
-                            var cd = ClientIngredientData.getCatalyst(c.getItem());
-                            if (cd.isPresent()) {
-                                durMult *= cd.get().effectDurationMultiplier();
-                                durFlat += cd.get().effectDurationFlat();
-                                levelMod += cd.get().effectLevelModifier();
-                                cdMult *= cd.get().elixirCooldownMultiplier();
-                                cdFlat += cd.get().elixirCooldownFlat();
-                            }
-                        }
-
-                        int finalDuration = Math.max(1, (int)((def.baseDuration() + durFlat) * durMult));
-                        int finalLevel = Math.max(1, def.baseLevel() + levelMod);
-                        int finalCooldown = Math.max(0, (int)((getCooldownSeconds() + cdFlat) * cdMult));
-
-                        String effectName = BuiltInRegistries.MOB_EFFECT.getOptional(def.effect())
-                                .map(e -> e.getDisplayName().getString())
-                                .orElse("Unknown");
-
-                        tooltipComponents.add(Component.literal("Effect: " + effectName + " " + toRoman(finalLevel))
-                                .withStyle(ChatFormatting.GRAY));
-                        tooltipComponents.add(Component.literal("Duration: " + formatTicks(finalDuration))
-                                .withStyle(ChatFormatting.GRAY));
-                        tooltipComponents.add(Component.literal("Cooldown: " + formatTime(finalCooldown))
-                                .withStyle(ChatFormatting.GRAY));
-                    });
-                }
-
-                // List all stones
-                if (stones.size() > 1) {
-                    tooltipComponents.add(Component.empty());
-                }
-                for (int i = 0; i < stones.size(); i++) {
-                    Component name = getIngredientDisplayName(stones.get(i), IngredientType.ESSENCE_STONE);
-                    if (i == activeIndex) {
-                        tooltipComponents.add(Component.literal(name.getString())
-                                .withStyle(ChatFormatting.GOLD));
-                    } else {
-                        tooltipComponents.add(Component.literal(name.getString())
-                                .withStyle(ChatFormatting.DARK_GRAY));
-                    }
-                }
-                if (stones.size() > 1) {
-                    tooltipComponents.add(Component.translatable("tooltip.alchemical.shift_to_switch")
-                            .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
-                }
-            }
-        } else {
-            if (!stones.isEmpty()) {
-                int activeIndex = getActiveStoneIndex(stack);
-                ItemStack activeStone = stones.get(activeIndex);
-                tooltipComponents.add(Component.translatable("tooltip.alchemical.active_stone",
-                        getIngredientDisplayName(activeStone, IngredientType.ESSENCE_STONE)));
-            } else {
-                tooltipComponents.add(Component.translatable("tooltip.alchemical.empty_flask"));
-            }
-            tooltipComponents.add(Component.translatable("tooltip.alchemical.elixir_hint"));
-        }
-        super.appendHoverText(stack, context, tooltipComponents, flag);
-    }
+    // ── Formatting helpers (delegated to FormattingUtil) ────────────────────
 
     private static String formatTicks(int ticks) {
-        return formatTime(ticks / 20);
+        return FormattingUtil.ticksToTime(ticks);
     }
 
     private static String toRoman(int n) {
-        return switch (n) {
-            case 1 -> "I"; case 2 -> "II"; case 3 -> "III"; case 4 -> "IV"; case 5 -> "V";
-            case 6 -> "VI"; case 7 -> "VII"; case 8 -> "VIII"; case 9 -> "IX"; case 10 -> "X";
-            default -> String.valueOf(n);
-        };
+        return FormattingUtil.toRoman(n);
     }
 
     private static String formatTime(int totalSeconds) {
-        int hours = totalSeconds / 3600;
-        int minutes = (totalSeconds % 3600) / 60;
-        int seconds = totalSeconds % 60;
-        StringBuilder sb = new StringBuilder();
-        if (hours > 0) sb.append(hours).append("h ");
-        if (hours > 0 || minutes > 0) sb.append(minutes).append("m ");
-        sb.append(seconds).append("s");
-        return sb.toString();
+        return FormattingUtil.secondsToTime(totalSeconds);
     }
 }

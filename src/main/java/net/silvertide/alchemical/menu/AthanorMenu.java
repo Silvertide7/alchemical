@@ -193,8 +193,8 @@ public class AthanorMenu extends AbstractContainerMenu {
         if (iElixir.getLoadedCount(elixir) + IngredientUtil.getPotency(ingredient) > iElixir.getCapacity())
             return ValidationResult.AT_CAPACITY;
 
-        // Prevent adding more than 3 essence stones
-        if (ingType == IngredientType.ESSENCE_STONE && iElixir.getStoneCount(elixir) >= 3)
+        // Prevent adding more than the configured max essence stones
+        if (ingType == IngredientType.ESSENCE_STONE && iElixir.getStoneCount(elixir) >= AlchemicalConfig.MAX_ESSENCE_STONES.get())
             return ValidationResult.MAX_STONES;
 
         // Prevent adding a duplicate essence stone type

@@ -20,7 +20,7 @@ public record TinctureDefinition(
         int effectDurationFlat,
         int effectLevelModifier,
         int potency                    // capacity slots consumed; default 1
-) {
+) implements ModifierDefinition {
     public static final Codec<TinctureDefinition> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             BuiltInRegistries.ITEM.byNameCodec().fieldOf("item").forGetter(TinctureDefinition::item),
             Codec.STRING.optionalFieldOf("name").forGetter(TinctureDefinition::name),

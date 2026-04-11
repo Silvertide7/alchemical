@@ -4,11 +4,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.silvertide.alchemical.data.ClientIngredientData;
-import net.silvertide.alchemical.data.IngredientManager;
 import net.silvertide.alchemical.records.EssenceStoneDefinition;
 import net.silvertide.alchemical.registry.DataComponentRegistry;
+import net.silvertide.alchemical.util.IngredientUtil;
 
 import java.util.Optional;
 
@@ -26,13 +24,7 @@ public class EssenceStoneItem extends Item {
                 .orElseGet(() -> super.getName(stack));
     }
 
-    // IngredientManager is populated server-side by datapack loaders.
-    // ClientIngredientData is populated client-side via the sync packet.
-    // Neither has @OnlyIn restrictions, so both are classloader-safe on either side.
     private static Optional<String> lookupName(ResourceLocation stoneType) {
-        if (FMLEnvironment.dist.isClient()) {
-            return ClientIngredientData.getStone(stoneType).flatMap(EssenceStoneDefinition::name);
-        }
-        return IngredientManager.getStone(stoneType).flatMap(EssenceStoneDefinition::name);
+        return IngredientUtil.getStone(stoneType).flatMap(EssenceStoneDefinition::name);
     }
 }

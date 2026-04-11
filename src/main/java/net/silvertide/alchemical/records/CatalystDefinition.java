@@ -20,7 +20,7 @@ public record CatalystDefinition(
         int effectDurationFlat,
         int effectLevelModifier,
         int potency                    // capacity slots consumed; default 1
-) {
+) implements ModifierDefinition {
     public static final Codec<CatalystDefinition> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             BuiltInRegistries.ITEM.byNameCodec().fieldOf("item").forGetter(CatalystDefinition::item),
             Codec.STRING.optionalFieldOf("name").forGetter(CatalystDefinition::name),
