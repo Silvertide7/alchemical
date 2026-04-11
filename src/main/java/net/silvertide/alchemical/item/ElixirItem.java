@@ -34,16 +34,13 @@ import java.util.Optional;
 public class ElixirItem extends Item implements IElixir {
     private static final int DRINK_DURATION_TICKS = 32;
 
-    private final int capacity;
-
-    public ElixirItem(int capacity) {
+    public ElixirItem() {
         super(new Item.Properties().stacksTo(1));
-        this.capacity = capacity;
     }
 
     @Override
     public int getCapacity() {
-        return capacity;
+        return AlchemicalConfig.ELIXIR_CAPACITY.get();
     }
 
     @Override

@@ -6,6 +6,7 @@ public final class AlchemicalConfig {
     public static final ModConfigSpec SERVER_SPEC;
     public static final ModConfigSpec.DoubleValue ESSENCE_STONE_BREAK_CHANCE;
     public static final ModConfigSpec.IntValue ELIXIR_COOLDOWN_SECONDS;
+    public static final ModConfigSpec.IntValue ELIXIR_CAPACITY;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -16,6 +17,9 @@ public final class AlchemicalConfig {
         ELIXIR_COOLDOWN_SECONDS = builder
                 .comment("Base global cooldown in seconds after drinking an elixir. Default: 1800 (30 minutes).")
                 .defineInRange("elixirCooldownSeconds", 1800, 0, 86400);
+        ELIXIR_CAPACITY = builder
+                .comment("Maximum potency capacity of an elixir flask. Default: 7. Max 45.")
+                .defineInRange("elixirCapacity", 7, 1, 45);
         builder.pop();
         SERVER_SPEC = builder.build();
     }
