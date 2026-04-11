@@ -1,5 +1,19 @@
 {
   "variants": {
-    "": { "model": "alchemical:block/athanor" }
+    "facing=north": {
+      "model": "alchemical:block/athanor"
+    },
+    "facing=south": {
+      "model": "alchemical:block/athanor",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "alchemical:block/athanor",
+      "y": 270
+    },
+    "facing=east": {
+      "model": "alchemical:block/athanor",
+      "y": 90
+    }
   }
 }
