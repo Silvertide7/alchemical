@@ -20,9 +20,11 @@ public final class AlchemicalConfig {
                 .defineInRange("elixirCooldownSeconds", 1800, 0, 86400);
         ELIXIR_CAPACITY = builder
                 .comment("Maximum potency capacity of an elixir flask. Default: 7. Max 45.")
-                .defineInRange("elixirCapacity", 7, 1, 45);
+                .defineInRange("elixirCapacity", 9, 1, 45);
         MAX_ESSENCE_STONES = builder
                 .comment("Maximum number of essence stones that can be loaded into a single elixir. Default: 3.")
+                .comment("The Athanor UI only shows the first 3 stones, so if you go higher you will have to check")
+                .comment("using the tooltip.")
                 .defineInRange("maxEssenceStones", 3, 1, 10);
         builder.pop();
         SERVER_SPEC = builder.build();

@@ -28,9 +28,9 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
     // ── Layout constants (GUI-relative pixels) ────────────────────────────────
 
     // Slot positions — must match AthanorMenu
-    private static final int ELIXIR_SLOT_X     = 79;   // centred in 176px GUI
+    private static final int ELIXIR_SLOT_X     = 106;  // centred in 230px GUI
     private static final int ELIXIR_SLOT_Y     = 16;
-    private static final int INGREDIENT_SLOT_X = 130;
+    private static final int INGREDIENT_SLOT_X = 157;
     private static final int INGREDIENT_SLOT_Y = 16;
 
     // Left info panel (elixir name + unified overview/ingredient list)
@@ -40,8 +40,8 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
 
     // Right ingredient panel (ingredient slot + [Add] + stats)
     // Only rendered when elixir has room
-    private static final int RP_X      = 101;
-    private static final int RP_RIGHT  = 172;
+    private static final int RP_X      = 128;
+    private static final int RP_RIGHT  = 226;
 
     // Panel vertical extents
     private static final int PANEL_TOP = 8;
@@ -128,15 +128,13 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
 
     public AthanorScreen(AthanorMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
-        this.imageWidth  = 176;
+        this.imageWidth  = 230;
         this.imageHeight = 240;
     }
 
     @Override
     protected void init() {
         super.init();
-        // Shift the GUI a bit to the left — there's extra room on the right
-        leftPos -= 10;
         updateLabelPositions();
     }
 
@@ -197,10 +195,10 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
         }
 
         // ── Inventory slot grid (no fill background) ──────────────────────────
-        // 3×9 main inventory (slot positions: x=8, y=152 — grid offset 1px out)
-        drawSlotGrid(g, px + 7, py + 151, 9, 3, C_SLOT_GRID);
-        // 1×9 hotbar (x=8, y=210)
-        drawSlotGrid(g, px + 7, py + 209, 9, 1, C_SLOT_GRID);
+        // 3×9 main inventory (slot positions: x=35, y=152 — grid offset 1px out)
+        drawSlotGrid(g, px + 34, py + 151, 9, 3, C_SLOT_GRID);
+        // 1×9 hotbar (x=35, y=210)
+        drawSlotGrid(g, px + 34, py + 209, 9, 1, C_SLOT_GRID);
 
         // ── Right panel + line (only when elixir slot is truly full or absent) ──
         // Use loadedCount >= capacity rather than cachedValidation so the line
@@ -285,9 +283,10 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
         drawScaledString(g, elixir.getHoverName(), px + LP_CONT_X, py + CONTENT_Y,
                 0.875f, withAlpha(C_ELIXIR_NAME, elixirAlpha));
 
-        // Separator line beneath the name
+        // Separator line beneath the name — spans the full 15-dot row width
         int nameSepY = py + CONTENT_Y + 9;
-        g.fill(px + LP_CONT_X, nameSepY, px + LP_RIGHT - 2, nameSepY + 1,
+        int sepRight = px + LP_CONT_X + 14 * 8 + 5;  // 15 dots × 8 spacing + diamond width
+        g.fill(px + LP_CONT_X, nameSepY, sepRight, nameSepY + 1,
                withAlpha(C_ELIXIR_NAME, elixirAlpha / 3));
 
         // ⓘ info icon — right edge of left panel, below the name

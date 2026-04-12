@@ -1,7 +1,0 @@
-{
-  "item": "minecraft:glowstone_dust",
-  "name": "Glowstone Powder",
-  "elixir_cooldown_multiplier": 1.40,
-  "effect_level_modifier": 1,
-  "potency": 2
-}

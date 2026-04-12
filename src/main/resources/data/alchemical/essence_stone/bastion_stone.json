@@ -1,7 +1,0 @@
-{
-  "name": "Bastion Stone",
-  "color": "#888899",
-  "effect": "minecraft:resistance",
-  "base_duration": 6000,
-  "potency": 3
-}

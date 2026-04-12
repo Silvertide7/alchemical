@@ -32,9 +32,9 @@ public class AthanorMenu extends AbstractContainerMenu {
     private static final int HOTBAR_END = 38;
 
     // GUI slot positions: elixir centred, ingredient in right panel
-    private static final int ELIXIR_SLOT_X     = 79;   // (176-18)/2
+    private static final int ELIXIR_SLOT_X     = 106;  // (230-18)/2
     private static final int ELIXIR_SLOT_Y     = 16;
-    private static final int INGREDIENT_SLOT_X = 130;
+    private static final int INGREDIENT_SLOT_X = 157;
     private static final int INGREDIENT_SLOT_Y = 16;
 
     public enum ValidationResult {
@@ -122,13 +122,13 @@ public class AthanorMenu extends AbstractContainerMenu {
         // Player inventory (slots 2–28)
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
-                addSlot(new Slot(playerInventory, col + row * 9 + 9, 8 + col * 18, 152 + row * 18));
+                addSlot(new Slot(playerInventory, col + row * 9 + 9, 35 + col * 18, 152 + row * 18));
             }
         }
 
         // Hotbar (slots 29–37)
         for (int col = 0; col < 9; col++) {
-            addSlot(new Slot(playerInventory, col, 8 + col * 18, 210));
+            addSlot(new Slot(playerInventory, col, 35 + col * 18, 210));
         }
 
         addDataSlots(containerData);
