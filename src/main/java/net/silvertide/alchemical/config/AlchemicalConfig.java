@@ -19,7 +19,7 @@ public final class AlchemicalConfig {
                 .comment("Base global cooldown in seconds after drinking an elixir. Default: 1800 (30 minutes).")
                 .defineInRange("elixirCooldownSeconds", 1800, 0, 86400);
         ELIXIR_CAPACITY = builder
-                .comment("Maximum potency capacity of an elixir flask. Default: 7. Max 45.")
+                .comment("Maximum potency capacity of an elixir flask. Default: 9. Max 45.")
                 .defineInRange("elixirCapacity", 9, 1, 45);
         MAX_ESSENCE_STONES = builder
                 .comment("Maximum number of essence stones that can be loaded into a single elixir. Default: 3.")
