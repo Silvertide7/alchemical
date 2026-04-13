@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " A ",
+    "BPB",
+    " A "
+  ],
+  "key": {
+    "A": { "item": "minecraft:netherite_scrap" },
+    "B": { "item": "minecraft:scute" },
+    "P": {
+      "type": "neoforge:components",
+      "items": ["minecraft:potion"],
+      "components": {
+        "minecraft:potion_contents": {
+          "potion": "minecraft:turtle_master"
+        }
+      }
+    }
+  },
+  "result": {
+    "id": "alchemical:essence_stone",
+    "count": 1,
+    "components": {
+      "alchemical:essence_stone_type": "alchemical:bastion_stone"
+    }
+  }
+}

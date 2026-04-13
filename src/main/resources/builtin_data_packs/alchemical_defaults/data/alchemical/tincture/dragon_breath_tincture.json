@@ -1,0 +1,7 @@
+{
+  "item": "minecraft:dragon_breath",
+  "name": "Dragon's Essence",
+  "effect_duration_multiplier": 1.30,
+  "effect_level_modifier": 1,
+  "potency": 2
+}

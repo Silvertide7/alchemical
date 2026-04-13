@@ -1,0 +1,7 @@
+{
+  "item": "minecraft:redstone",
+  "name": "Redstone Catalyst",
+  "effect_duration_multiplier": 1.80,
+  "elixir_cooldown_multiplier": 1.40,
+  "potency": 2
+}

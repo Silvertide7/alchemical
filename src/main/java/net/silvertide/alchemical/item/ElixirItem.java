@@ -1,10 +1,8 @@
 package net.silvertide.alchemical.item;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.silvertide.alchemical.config.AlchemicalConfig;
-import net.silvertide.alchemical.data.ClientIngredientData;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -17,7 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
-import net.silvertide.alchemical.client.ClientElixirCooldownData;
+import net.silvertide.alchemical.client.ClientProxy;
 import net.silvertide.alchemical.records.EssenceStoneDefinition;
 import net.silvertide.alchemical.registry.DataComponentRegistry;
 import net.silvertide.alchemical.util.ElixirAttachmentUtil;
@@ -53,17 +51,17 @@ public class ElixirItem extends Item implements IElixir {
         }
 
         if (!isUsable(stack)) {
-            if (level.isClientSide() && ClientElixirCooldownData.tryMarkMessageSent(level.getGameTime())) {
+            if (level.isClientSide() && ClientProxy.tryMarkMessageSent(level.getGameTime())) {
                 player.sendSystemMessage(Component.translatable("message.alchemical.flask_not_ready"));
             }
             return InteractionResultHolder.fail(stack);
         }
 
         if (level.isClientSide()) {
-            if (ClientElixirCooldownData.isOnCooldown(level.getGameTime())) {
-                if (ClientElixirCooldownData.tryMarkMessageSent(level.getGameTime())) {
+            if (ClientProxy.isOnCooldown(level.getGameTime())) {
+                if (ClientProxy.tryMarkMessageSent(level.getGameTime())) {
                     player.sendSystemMessage(Component.translatable("message.alchemical.on_cooldown",
-                            formatTime(ClientElixirCooldownData.getRemainingSeconds(level.getGameTime()))));
+                            formatTime(ClientProxy.getRemainingSeconds(level.getGameTime()))));
                 }
                 return InteractionResultHolder.fail(stack);
             }
@@ -189,7 +187,7 @@ public class ElixirItem extends Item implements IElixir {
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag flag) {
-        if (Screen.hasShiftDown()) {
+        if (ClientProxy.isShiftDown()) {
             buildShiftTooltip(stack, tooltipComponents);
         } else {
             buildDefaultTooltip(stack, tooltipComponents);
@@ -265,20 +263,10 @@ public class ElixirItem extends Item implements IElixir {
         tooltipComponents.add(Component.translatable("tooltip.alchemical.elixir_hint"));
     }
 
-    // ── Display name resolution (client-side) ────────────────────────────────
+    // ── Display name resolution (client-side, routed through ClientProxy) ───
 
     private static Component getIngredientDisplayName(ItemStack stack, IngredientType type) {
-        Optional<String> customName = switch (type) {
-            case TINCTURE -> ClientIngredientData.getTincture(stack.getItem()).flatMap(d -> d.name());
-            case ESSENCE_STONE -> {
-                var stoneType = stack.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get());
-                yield stoneType != null
-                        ? ClientIngredientData.getStone(stoneType).flatMap(EssenceStoneDefinition::name)
-                        : Optional.empty();
-            }
-            case CATALYST -> ClientIngredientData.getCatalyst(stack.getItem()).flatMap(d -> d.name());
-            default -> Optional.empty();
-        };
+        Optional<String> customName = ClientProxy.getIngredientName(stack, type.name());
         return customName.<Component>map(Component::literal).orElseGet(stack::getHoverName);
     }
 

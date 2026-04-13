@@ -1,0 +1,6 @@
+{
+  "name": "Zephyr Stone",
+  "color": "#EEEEFF",
+  "effect": "minecraft:slow_falling",
+  "base_duration": 12000
+}

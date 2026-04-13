@@ -1,0 +1,6 @@
+{
+  "name": "Leaping Stone",
+  "color": "#44FF44",
+  "effect": "minecraft:jump_boost",
+  "base_duration": 9600
+}

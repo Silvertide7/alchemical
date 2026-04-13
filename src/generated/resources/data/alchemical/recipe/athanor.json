@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": {
+      "item": "minecraft:cauldron"
+    },
+    "B": {
+      "item": "minecraft:brewing_stand"
+    },
+    "F": {
+      "item": "minecraft:furnace"
+    },
+    "N": {
+      "item": "minecraft:blackstone"
+    }
+  },
+  "pattern": [
+    "NAN",
+    "NFN",
+    "NBN"
+  ],
+  "result": {
+    "count": 1,
+    "id": "alchemical:athanor"
+  }
+}

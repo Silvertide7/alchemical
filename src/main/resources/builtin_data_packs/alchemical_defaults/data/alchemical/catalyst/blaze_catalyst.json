@@ -1,0 +1,8 @@
+{
+  "item": "minecraft:blaze_powder",
+  "name": "Blaze Catalyst",
+  "effect_level_modifier": 1,
+  "effect_duration_multiplier": 0.70,
+  "elixir_cooldown_multiplier": 1.30,
+  "potency": 2
+}

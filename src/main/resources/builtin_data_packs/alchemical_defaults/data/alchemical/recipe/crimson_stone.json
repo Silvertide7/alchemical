@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " A ",
+    "BPB",
+    " A "
+  ],
+  "key": {
+    "A": { "item": "minecraft:ghast_tear" },
+    "B": { "item": "minecraft:amethyst_shard" },
+    "P": {
+      "type": "neoforge:components",
+      "items": ["minecraft:potion"],
+      "components": {
+        "minecraft:potion_contents": {
+          "potion": "minecraft:regeneration"
+        }
+      }
+    }
+  },
+  "result": {
+    "id": "alchemical:essence_stone",
+    "count": 1,
+    "components": {
+      "alchemical:essence_stone_type": "alchemical:crimson_stone"
+    }
+  }
+}
