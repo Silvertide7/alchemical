@@ -8,13 +8,13 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import net.silvertide.alchemical.Alchemical;
-import net.silvertide.alchemical.attachments.ElixirCooldown;
+import net.silvertide.alchemical.data.ElixirCooldown;
 
-@EventBusSubscriber(modid = Alchemical.MODID)
+@Mod.EventBusSubscriber(modid = Alchemical.MODID)
 public final class CommandEvents {
     private CommandEvents() {}
 

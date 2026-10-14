@@ -3,6 +3,8 @@ package net.silvertide.alchemical.block;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleMenuProvider;
@@ -21,6 +23,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraftforge.network.NetworkHooks;
 import net.silvertide.alchemical.menu.AthanorMenu;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
  * The brewing station. Works like a crafting table: it has no storage of its own, the
  * menu holds the flask and ingredient while it's open and hands them back on close.
  */
+@SuppressWarnings("deprecation") // the BlockBehaviour overrides are deprecated to call, not to override
 public class AthanorBlock extends Block {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
 
@@ -52,18 +56,20 @@ public class AthanorBlock extends Block {
     }
 
     @Override
-    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
 
     @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide()) player.openMenu(state.getMenuProvider(level, pos));
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        if (player instanceof ServerPlayer serverPlayer) {
+            NetworkHooks.openScreen(serverPlayer, state.getMenuProvider(level, pos));
+        }
         return InteractionResult.sidedSuccess(level.isClientSide());
     }
 
     @Override
-    protected MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
+    public MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
         return new SimpleMenuProvider(
                 (id, inventory, player) -> new AthanorMenu(id, inventory, ContainerLevelAccess.create(level, pos)),
                 TITLE);

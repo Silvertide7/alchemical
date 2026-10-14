@@ -28,7 +28,6 @@ bin/
 
 ### VS Code ###
 .vscode/
-
 ### Mac OS ###
 .DS_Store
 
@@ -38,4 +37,5 @@ run/
 **/src/generated/**/.cache/
 repo/
 !**/src/**/repo/
-.claude/settings.local.json
+run-data/
+!**/src/**/run-data/

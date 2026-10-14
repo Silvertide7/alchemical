@@ -2,6 +2,9 @@ package net.silvertide.alchemical.item;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -14,25 +17,27 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
-import net.silvertide.alchemical.attachments.ElixirCooldown;
 import net.silvertide.alchemical.client.ClientElixirCooldownData;
 import net.silvertide.alchemical.config.AlchemicalConfig;
+import net.silvertide.alchemical.data.ElixirCooldown;
 import net.silvertide.alchemical.data.IngredientManager;
 import net.silvertide.alchemical.records.EssenceStoneDefinition;
-import net.silvertide.alchemical.registry.DataComponentRegistry;
 import net.silvertide.alchemical.util.ElixirModifiers;
 import net.silvertide.alchemical.util.FormattingUtil;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * A reusable flask. Stones, tinctures and catalysts are loaded in at the Athanor and live
- * on the stack as data components. Drinking applies the active stone's effect and starts
- * a global cooldown; shift-use cycles which stone is active.
+ * on the stack as NBT lists (one per IngredientType). Drinking applies the active stone's
+ * effect and starts a global cooldown; shift-use cycles which stone is active.
  */
 public class ElixirItem extends Item {
     private static final int DRINK_TICKS = 32;
+    private static final String ACTIVE_STONE_KEY = "active_stone_index";
 
     public ElixirItem() {
         super(new Item.Properties().stacksTo(1));
@@ -41,15 +46,36 @@ public class ElixirItem extends Item {
     // --- What's in the flask ---
 
     public static List<ItemStack> stones(ItemStack flask) {
-        return flask.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
+        return contents(flask, IngredientType.ESSENCE_STONE);
     }
 
     public static List<ItemStack> tinctures(ItemStack flask) {
-        return flask.getOrDefault(DataComponentRegistry.TINCTURES.get(), List.of());
+        return contents(flask, IngredientType.TINCTURE);
     }
 
     public static List<ItemStack> catalysts(ItemStack flask) {
-        return flask.getOrDefault(DataComponentRegistry.CATALYSTS.get(), List.of());
+        return contents(flask, IngredientType.CATALYST);
+    }
+
+    public static List<ItemStack> contents(ItemStack flask, IngredientType type) {
+        CompoundTag tag = flask.getTag();
+        if (tag == null) return List.of();
+        ListTag list = tag.getList(type.nbtKey, Tag.TAG_COMPOUND);
+        List<ItemStack> stacks = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) stacks.add(ItemStack.of(list.getCompound(i)));
+        return stacks;
+    }
+
+    public static void add(ItemStack flask, IngredientType type, ItemStack ingredient) {
+        CompoundTag tag = flask.getOrCreateTag();
+        ListTag list = tag.getList(type.nbtKey, Tag.TAG_COMPOUND);
+        list.add(ingredient.save(new CompoundTag()));
+        tag.put(type.nbtKey, list);
+    }
+
+    public static void clear(ItemStack flask) {
+        for (IngredientType type : IngredientType.values()) flask.removeTagKey(type.nbtKey);
+        flask.removeTagKey(ACTIVE_STONE_KEY);
     }
 
     public static int capacity() {
@@ -76,7 +102,7 @@ public class ElixirItem extends Item {
 
     public static int activeStoneIndex(ItemStack flask) {
         int count = stones(flask).size();
-        int index = flask.getOrDefault(DataComponentRegistry.ACTIVE_STONE_INDEX.get(), 0);
+        int index = flask.hasTag() ? flask.getTag().getInt(ACTIVE_STONE_KEY) : 0;
         return count == 0 ? 0 : Math.min(index, count - 1);
     }
 
@@ -137,12 +163,12 @@ public class ElixirItem extends Item {
     private static void cycleActiveStone(Player player, ItemStack flask) {
         List<ItemStack> stones = stones(flask);
         int next = (activeStoneIndex(flask) + 1) % stones.size();
-        flask.set(DataComponentRegistry.ACTIVE_STONE_INDEX.get(), next);
+        flask.getOrCreateTag().putInt(ACTIVE_STONE_KEY, next);
         player.sendSystemMessage(Component.translatable("tooltip.alchemical.stone_switched", stones.get(next).getHoverName()));
     }
 
     @Override
-    public int getUseDuration(ItemStack stack, LivingEntity entity) {
+    public int getUseDuration(ItemStack stack) {
         return DRINK_TICKS;
     }
 
@@ -154,7 +180,7 @@ public class ElixirItem extends Item {
     // --- Tooltip ---
 
     @Override
-    public void appendHoverText(ItemStack flask, TooltipContext context, List<Component> lines, TooltipFlag flag) {
+    public void appendHoverText(ItemStack flask, @Nullable Level level, List<Component> lines, TooltipFlag flag) {
         List<ItemStack> stones = stones(flask);
         int active = activeStoneIndex(flask);
 

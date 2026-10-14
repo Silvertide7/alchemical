@@ -1,25 +1,24 @@
 package net.silvertide.alchemical.datagen;
 
-import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
+import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.data.recipes.RecipeCategory;
-import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.data.recipes.ShapedRecipeBuilder;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.silvertide.alchemical.registry.ItemRegistry;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 public class AlchemicalRecipeProvider extends RecipeProvider {
 
-    public AlchemicalRecipeProvider(PackOutput output, CompletableFuture<HolderLookup.Provider> lookupProvider) {
-        super(output, lookupProvider);
+    public AlchemicalRecipeProvider(PackOutput output) {
+        super(output);
     }
 
     @Override
-    protected void buildRecipes(RecipeOutput output) {
+    protected void buildRecipes(Consumer<FinishedRecipe> output) {
         ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS, ItemRegistry.ATHANOR.get())
                 .pattern("NAN")
                 .pattern("NFN")

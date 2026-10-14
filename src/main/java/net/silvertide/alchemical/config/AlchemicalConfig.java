@@ -1,16 +1,16 @@
 package net.silvertide.alchemical.config;
 
-import net.neoforged.neoforge.common.ModConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec;
 
 public final class AlchemicalConfig {
-    public static final ModConfigSpec SERVER_SPEC;
-    public static final ModConfigSpec.DoubleValue ESSENCE_STONE_BREAK_CHANCE;
-    public static final ModConfigSpec.IntValue ELIXIR_COOLDOWN_SECONDS;
-    public static final ModConfigSpec.IntValue ELIXIR_CAPACITY;
-    public static final ModConfigSpec.IntValue MAX_ESSENCE_STONES;
+    public static final ForgeConfigSpec SERVER_SPEC;
+    public static final ForgeConfigSpec.DoubleValue ESSENCE_STONE_BREAK_CHANCE;
+    public static final ForgeConfigSpec.IntValue ELIXIR_COOLDOWN_SECONDS;
+    public static final ForgeConfigSpec.IntValue ELIXIR_CAPACITY;
+    public static final ForgeConfigSpec.IntValue MAX_ESSENCE_STONES;
 
     static {
-        ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
+        ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
         builder.push("server");
         ESSENCE_STONE_BREAK_CHANCE = builder
                 .comment("Chance (0.0 to 1.0) that each Essence Stone is destroyed when clearing an elixir. Default: 0.5 (50% chance to break).")

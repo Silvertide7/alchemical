@@ -1,6 +1,6 @@
 # Alchemical
 
-Reusable, customisable elixirs for Minecraft 1.21.1 on NeoForge.
+Reusable, customisable elixirs for Minecraft 1.20.1 on Forge.
 
 Craft an Elixir flask once, load it with ingredients at an Athanor, and drink it as often as the cooldown allows. What the elixir does is decided by data: every stone, tincture and catalyst is a datapack JSON, so packs can reskin, rebalance or replace the whole set.
 
@@ -29,7 +29,7 @@ Essence Stones have no recipe by default; add your own via datapack, loot or the
 
 ## Configuration
 
-`config/alchemical-server.toml` (server-side, synced to clients):
+`<world>/serverconfig/alchemical-server.toml` (per world, synced to clients):
 
 | Key | Default | Meaning |
 |-----|---------|---------|
@@ -82,13 +82,13 @@ An unknown `effect` id or a malformed file is logged and skipped.
 
 ## Building
 
-Requires Java 21.
+Requires Java 17 to run the game; Gradle itself runs on Java 17 or 21.
 
 ```bash
 ./gradlew build
 ```
 
-The jar lands in `build/libs/`. `./gradlew publishMods` uploads it to CurseForge using the `CF_TOKEN` environment variable; set `PUBLISH_DRY_RUN=true` to rehearse without uploading. `./gradlew buildAndPublishMods` does both in one go.
+The jar lands in `build/libs/` (already reobfuscated for Forge). `./gradlew publishMods` uploads it to CurseForge using the `CF_TOKEN` environment variable; set `PUBLISH_DRY_RUN=true` to rehearse without uploading. `./gradlew buildAndPublishMods` does both in one go.
 
 ## Licence
 

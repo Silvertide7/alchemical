@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " A ",
+    "BPB",
+    " A "
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:ender_pearl"
+    },
+    "B": {
+      "item": "minecraft:fermented_spider_eye"
+    },
+    "P": {
+      "type": "forge:partial_nbt",
+      "item": "minecraft:potion",
+      "nbt": {
+        "Potion": "minecraft:invisibility"
+      }
+    }
+  },
+  "result": {
+    "item": "alchemical:essence_stone",
+    "count": 1,
+    "nbt": {
+      "essence_stone_type": "alchemical:phantom_stone"
+    }
+  }
+}

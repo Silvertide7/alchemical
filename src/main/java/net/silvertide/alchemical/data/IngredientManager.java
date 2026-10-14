@@ -4,10 +4,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.silvertide.alchemical.item.EssenceStoneItem;
 import net.silvertide.alchemical.item.IngredientType;
 import net.silvertide.alchemical.records.EssenceStoneDefinition;
 import net.silvertide.alchemical.records.ModifierDefinition;
-import net.silvertide.alchemical.registry.DataComponentRegistry;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -61,9 +61,9 @@ public final class IngredientManager {
         return Optional.ofNullable(stones.get(id));
     }
 
-    /** Resolves an essence stone item through its type component. */
+    /** Resolves an essence stone item through its type tag. */
     public static Optional<EssenceStoneDefinition> getStone(ItemStack stack) {
-        ResourceLocation type = stack.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get());
+        ResourceLocation type = EssenceStoneItem.typeOf(stack);
         return type == null ? Optional.empty() : getStone(type);
     }
 

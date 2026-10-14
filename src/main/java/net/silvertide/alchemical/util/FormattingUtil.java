@@ -1,6 +1,5 @@
 package net.silvertide.alchemical.util;
 
-import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.effect.MobEffect;
 
@@ -32,7 +31,7 @@ public final class FormattingUtil {
     }
 
     /** "Regeneration II" */
-    public static Component effectName(Holder<MobEffect> effect, int level) {
-        return Component.translatable("gui.alchemical.athanor.stat.effect_name", effect.value().getDisplayName(), toRoman(level));
+    public static Component effectName(MobEffect effect, int level) {
+        return Component.translatable("gui.alchemical.athanor.stat.effect_name", effect.getDisplayName(), toRoman(level));
     }
 }

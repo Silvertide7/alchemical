@@ -76,6 +76,7 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
     private static final int C_DOT_OVERFLOW      = 0xFFCC2222;   // ...when it doesn't fit
     private static final int C_WARNING           = 0xFFDD4422;
     private static final int C_SLOT_GRID         = 0xFF667788;
+    private static final int EXTRA_DIM           = 0x26000000;   // 15% black on top of vanilla's dim, this UI has no texture to lean on
 
     // --- Animation and confirm state ---
 
@@ -189,6 +190,8 @@ public class AthanorScreen extends AbstractContainerScreen<AthanorMenu> {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+        renderBackground(g); // 1.20.1 leaves the dim overlay to each screen; 1.21 does it in super
+        g.fill(0, 0, width, height, EXTRA_DIM);
         super.render(g, mouseX, mouseY, partialTick);
         renderTooltip(g, mouseX, mouseY);
 

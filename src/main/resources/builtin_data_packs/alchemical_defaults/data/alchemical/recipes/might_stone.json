@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " A ",
+    "BPB",
+    " A "
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:blaze_powder"
+    },
+    "B": {
+      "item": "minecraft:nether_wart"
+    },
+    "P": {
+      "type": "forge:partial_nbt",
+      "item": "minecraft:potion",
+      "nbt": {
+        "Potion": "minecraft:strength"
+      }
+    }
+  },
+  "result": {
+    "item": "alchemical:essence_stone",
+    "count": 1,
+    "nbt": {
+      "essence_stone_type": "alchemical:might_stone"
+    }
+  }
+}

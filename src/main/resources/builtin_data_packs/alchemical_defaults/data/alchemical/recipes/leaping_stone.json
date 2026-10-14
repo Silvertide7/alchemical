@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " A ",
+    "BPB",
+    " A "
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:rabbit_foot"
+    },
+    "B": {
+      "item": "minecraft:slime_ball"
+    },
+    "P": {
+      "type": "forge:partial_nbt",
+      "item": "minecraft:potion",
+      "nbt": {
+        "Potion": "minecraft:leaping"
+      }
+    }
+  },
+  "result": {
+    "item": "alchemical:essence_stone",
+    "count": 1,
+    "nbt": {
+      "essence_stone_type": "alchemical:leaping_stone"
+    }
+  }
+}

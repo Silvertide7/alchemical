@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " A ",
+    "BPB",
+    " A "
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:nautilus_shell"
+    },
+    "B": {
+      "item": "minecraft:prismarine_shard"
+    },
+    "P": {
+      "type": "forge:partial_nbt",
+      "item": "minecraft:potion",
+      "nbt": {
+        "Potion": "minecraft:water_breathing"
+      }
+    }
+  },
+  "result": {
+    "item": "alchemical:essence_stone",
+    "count": 1,
+    "nbt": {
+      "essence_stone_type": "alchemical:tidal_stone"
+    }
+  }
+}

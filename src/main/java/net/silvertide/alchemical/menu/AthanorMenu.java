@@ -1,6 +1,5 @@
 package net.silvertide.alchemical.menu;
 
-import net.minecraft.core.component.DataComponentType;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -14,19 +13,18 @@ import net.minecraft.world.item.ItemStack;
 import net.silvertide.alchemical.config.AlchemicalConfig;
 import net.silvertide.alchemical.data.IngredientManager;
 import net.silvertide.alchemical.item.ElixirItem;
+import net.silvertide.alchemical.item.EssenceStoneItem;
 import net.silvertide.alchemical.item.IngredientType;
 import net.silvertide.alchemical.registry.BlockRegistry;
-import net.silvertide.alchemical.registry.DataComponentRegistry;
 import net.silvertide.alchemical.registry.MenuRegistry;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * Two slots: a flask and one staged ingredient. [Add] moves the ingredient into the flask's
- * data components, [Empty Elixir] dumps it. Both slots go back to the player on close.
+ * NBT, [Empty Elixir] dumps it. Both slots go back to the player on close.
  */
 public class AthanorMenu extends AbstractContainerMenu {
     public static final int ELIXIR_SLOT = 0;
@@ -75,7 +73,7 @@ public class AthanorMenu extends AbstractContainerMenu {
     private final Player player;
 
     // Client side. The server sends no extra data.
-    public AthanorMenu(int containerId, Inventory playerInventory, FriendlyByteBuf buf) {
+    public AthanorMenu(int containerId, Inventory playerInventory, @Nullable FriendlyByteBuf buf) {
         this(containerId, playerInventory, ContainerLevelAccess.NULL);
     }
 
@@ -167,11 +165,9 @@ public class AthanorMenu extends AbstractContainerMenu {
 
         if (type == IngredientType.ESSENCE_STONE) {
             if (stones.size() >= AlchemicalConfig.MAX_ESSENCE_STONES.get()) return ValidationResult.MAX_STONES;
-            ResourceLocation newType = ingredient.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get());
+            ResourceLocation newType = EssenceStoneItem.typeOf(ingredient);
             for (ItemStack stone : stones) {
-                if (Objects.equals(newType, stone.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get()))) {
-                    return ValidationResult.DUPLICATE_STONE;
-                }
+                if (Objects.equals(newType, EssenceStoneItem.typeOf(stone))) return ValidationResult.DUPLICATE_STONE;
             }
         }
         return ValidationResult.CAN_ADD;
@@ -192,11 +188,7 @@ public class AthanorMenu extends AbstractContainerMenu {
         if (canAddIngredient() != ValidationResult.CAN_ADD) return false;
         ItemStack flask = container.getItem(ELIXIR_SLOT);
         ItemStack ingredient = container.removeItem(INGREDIENT_SLOT, 1);
-
-        DataComponentType<List<ItemStack>> list = Objects.requireNonNull(IngredientType.of(ingredient).component).get();
-        List<ItemStack> updated = new ArrayList<>(flask.getOrDefault(list, List.of()));
-        updated.add(ingredient);
-        flask.set(list, updated);
+        ElixirItem.add(flask, IngredientType.of(ingredient), ingredient);
         return true;
     }
 
@@ -211,10 +203,7 @@ public class AthanorMenu extends AbstractContainerMenu {
                 player.getInventory().placeItemBackInInventory(stone.copy());
             }
         }
-        flask.remove(DataComponentRegistry.ESSENCE_STONES.get());
-        flask.remove(DataComponentRegistry.TINCTURES.get());
-        flask.remove(DataComponentRegistry.CATALYSTS.get());
-        flask.remove(DataComponentRegistry.ACTIVE_STONE_INDEX.get());
+        ElixirItem.clear(flask);
         return true;
     }
 

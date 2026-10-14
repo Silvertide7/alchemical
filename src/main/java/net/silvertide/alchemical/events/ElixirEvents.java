@@ -1,23 +1,23 @@
 package net.silvertide.alchemical.events;
 
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.AddReloadListenerEvent;
-import net.neoforged.neoforge.event.OnDatapackSyncEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraftforge.event.AddReloadListenerEvent;
+import net.minecraftforge.event.OnDatapackSyncEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import net.silvertide.alchemical.Alchemical;
-import net.silvertide.alchemical.attachments.ElixirCooldown;
 import net.silvertide.alchemical.data.DefinitionLoader;
+import net.silvertide.alchemical.data.ElixirCooldown;
 import net.silvertide.alchemical.data.IngredientManager;
 import net.silvertide.alchemical.network.CB_SyncIngredientDefinitionsPacket;
+import net.silvertide.alchemical.network.Networking;
 import net.silvertide.alchemical.records.EssenceStoneDefinition;
 import net.silvertide.alchemical.records.ModifierDefinition;
 
 import java.util.List;
 
-@EventBusSubscriber(modid = Alchemical.MODID)
+@Mod.EventBusSubscriber(modid = Alchemical.MODID)
 public final class ElixirEvents {
     private ElixirEvents() {}
 
@@ -36,7 +36,8 @@ public final class ElixirEvents {
                 List.copyOf(IngredientManager.stones()),
                 List.copyOf(IngredientManager.tinctures()),
                 List.copyOf(IngredientManager.catalysts()));
-        event.getRelevantPlayers().forEach(player -> PacketDistributor.sendToPlayer(player, packet));
+        List<ServerPlayer> players = event.getPlayer() != null ? List.of(event.getPlayer()) : event.getPlayerList().getPlayers();
+        players.forEach(player -> Networking.sendToPlayer(player, packet));
     }
 
     // The client's cooldown copy is static and outlives the connection, so always overwrite it

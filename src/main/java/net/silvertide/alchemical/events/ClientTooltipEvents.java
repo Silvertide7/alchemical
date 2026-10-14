@@ -2,15 +2,15 @@ package net.silvertide.alchemical.events;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.event.entity.player.ItemTooltipEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import net.silvertide.alchemical.Alchemical;
 import net.silvertide.alchemical.item.IngredientType;
 
 /** Tags any item that a datapack has made an elixir ingredient with a line saying so. */
-@EventBusSubscriber(modid = Alchemical.MODID, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = Alchemical.MODID, value = Dist.CLIENT)
 public final class ClientTooltipEvents {
     private ClientTooltipEvents() {}
 

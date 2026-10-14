@@ -1,6 +1,6 @@
 package net.silvertide.alchemical.client;
 
-import net.silvertide.alchemical.attachments.ElixirCooldown;
+import net.silvertide.alchemical.data.ElixirCooldown;
 
 /** The client's copy of its own cooldown, fed by CB_SyncElixirCooldownPacket. */
 public final class ClientElixirCooldownData {

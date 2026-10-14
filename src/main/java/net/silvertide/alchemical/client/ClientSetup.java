@@ -1,23 +1,24 @@
 package net.silvertide.alchemical.client;
 
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
-import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterColorHandlersEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.silvertide.alchemical.Alchemical;
 import net.silvertide.alchemical.client.screen.AthanorScreen;
 import net.silvertide.alchemical.data.IngredientManager;
 import net.silvertide.alchemical.registry.ItemRegistry;
 import net.silvertide.alchemical.registry.MenuRegistry;
 
-@EventBusSubscriber(modid = Alchemical.MODID, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = Alchemical.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class ClientSetup {
     private ClientSetup() {}
 
     @SubscribeEvent
-    public static void onRegisterScreens(RegisterMenuScreensEvent event) {
-        event.register(MenuRegistry.ATHANOR.get(), AthanorScreen::new);
+    public static void onClientSetup(FMLClientSetupEvent event) {
+        event.enqueueWork(() -> MenuScreens.register(MenuRegistry.ATHANOR.get(), AthanorScreen::new));
     }
 
     // Essence stones are one grey base texture (layer 0) plus an overlay (layer 1) tinted per definition.
