@@ -92,4 +92,4 @@ The jar lands in `build/libs/`. `./gradlew publishMods` uploads it to CurseForge
 
 ## Licence
 
-Creative Commons 4.0.
+All Rights Reserved.
