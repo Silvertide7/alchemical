@@ -7,7 +7,7 @@
   ],
   "key": {
     "A": { "item": "minecraft:netherite_scrap" },
-    "B": { "item": "minecraft:scute" },
+    "B": { "item": "minecraft:turtle_scute" },
     "P": {
       "type": "neoforge:components",
       "items": ["minecraft:potion"],

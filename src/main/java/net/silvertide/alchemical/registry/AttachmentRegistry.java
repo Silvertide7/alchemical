@@ -14,11 +14,10 @@ public final class AttachmentRegistry {
             DeferredRegister.create(NeoForgeRegistries.ATTACHMENT_TYPES, Alchemical.MODID);
 
     public static final Supplier<AttachmentType<ElixirCooldown>> ELIXIR_COOLDOWN = ATTACHMENT_TYPES.register(
-            "elixir_cooldown", () -> AttachmentType.builder(() -> new ElixirCooldown(0L, 0))
+            "elixir_cooldown", () -> AttachmentType.builder(() -> ElixirCooldown.NONE)
                     .serialize(ElixirCooldown.CODEC)
                     .copyOnDeath()
-                    .build()
-    );
+                    .build());
 
     public static void register(IEventBus eventBus) {
         ATTACHMENT_TYPES.register(eventBus);

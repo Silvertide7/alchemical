@@ -22,9 +22,8 @@ public class Alchemical {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public Alchemical(IEventBus modEventBus, ModContainer modContainer) {
-        ItemRegistry.register(modEventBus);
         BlockRegistry.register(modEventBus);
-        BlockEntityRegistry.register(modEventBus);
+        ItemRegistry.register(modEventBus);
         AttachmentRegistry.register(modEventBus);
         DataComponentRegistry.register(modEventBus);
         MenuRegistry.register(modEventBus);
@@ -35,12 +34,11 @@ public class Alchemical {
         modEventBus.addListener(this::addPackFinders);
     }
 
+    // The default stones, tinctures and catalysts ship as a built-in datapack so packs can override them.
     private void addPackFinders(AddPackFindersEvent event) {
         if (event.getPackType() == PackType.SERVER_DATA) {
-            ResourceLocation location = ResourceLocation.fromNamespaceAndPath(MODID, "builtin_data_packs/alchemical_defaults");
-            event.addPackFinders(location, PackType.SERVER_DATA,
-                    Component.literal("Alchemical Defaults"),
-                    PackSource.DEFAULT, false, Pack.Position.TOP);
+            event.addPackFinders(id("builtin_data_packs/alchemical_defaults"), PackType.SERVER_DATA,
+                    Component.literal("Alchemical Defaults"), PackSource.DEFAULT, false, Pack.Position.TOP);
         }
     }
 

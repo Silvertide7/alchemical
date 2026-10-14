@@ -7,7 +7,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 import net.silvertide.alchemical.Alchemical;
 
-@EventBusSubscriber(modid = Alchemical.MODID, bus = EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = Alchemical.MODID)
 public final class DataGenerators {
 
     @SubscribeEvent

@@ -8,7 +8,6 @@ import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.data.recipes.ShapedRecipeBuilder;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
-import net.silvertide.alchemical.registry.BlockRegistry;
 import net.silvertide.alchemical.registry.ItemRegistry;
 
 import java.util.concurrent.CompletableFuture;
@@ -21,11 +20,7 @@ public class AlchemicalRecipeProvider extends RecipeProvider {
 
     @Override
     protected void buildRecipes(RecipeOutput output) {
-        // Athanor — brewing stand alchemical station
-        //   N A N
-        //   N F N
-        //   N B N
-        ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS, BlockRegistry.ATHANOR_ITEM.get())
+        ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS, ItemRegistry.ATHANOR.get())
                 .pattern("NAN")
                 .pattern("NFN")
                 .pattern("NBN")
@@ -37,10 +32,6 @@ public class AlchemicalRecipeProvider extends RecipeProvider {
                 .unlockedBy("has_blaze_rod", has(Items.BLAZE_ROD))
                 .save(output);
 
-        // Elixir Flask
-        //   G A G
-        //   G H G
-        //     G
         ShapedRecipeBuilder.shaped(RecipeCategory.BREWING, ItemRegistry.ELIXIR.get())
                 .pattern("GAG")
                 .pattern("GHG")

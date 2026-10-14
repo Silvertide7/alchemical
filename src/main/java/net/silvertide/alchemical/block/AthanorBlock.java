@@ -1,18 +1,17 @@
 package net.silvertide.alchemical.block;
 
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.RenderShape;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -22,29 +21,25 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.silvertide.alchemical.block.entity.AthanorBlockEntity;
-import org.jetbrains.annotations.NotNull;
+import net.silvertide.alchemical.menu.AthanorMenu;
 import org.jetbrains.annotations.Nullable;
 
-public class AthanorBlock extends BaseEntityBlock {
+/**
+ * The brewing station. Works like a crafting table: it has no storage of its own, the
+ * menu holds the flask and ingredient while it's open and hands them back on close.
+ */
+public class AthanorBlock extends Block {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
-    public static final MapCodec<AthanorBlock> CODEC = simpleCodec(AthanorBlock::new);
 
-    private static final VoxelShape BASE = Block.box(0, 0, 0, 16, 10, 16);
-    private static final VoxelShape TOP  = Block.box(2, 10, 2, 14, 16, 14);
-    private static final VoxelShape SHAPE = Shapes.or(BASE, TOP);
-
-    @Override
-    public @NotNull MapCodec<AthanorBlock> codec() {
-        return CODEC;
-    }
+    private static final VoxelShape SHAPE = Shapes.or(
+            Block.box(0, 0, 0, 16, 10, 16),
+            Block.box(2, 10, 2, 14, 16, 14));
+    private static final Component TITLE = Component.translatable("container.alchemical.athanor");
 
     public AthanorBlock(BlockBehaviour.Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
-
-    // --- Block State ---
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
@@ -52,42 +47,25 @@ public class AthanorBlock extends BaseEntityBlock {
     }
 
     @Override
-    public @Nullable BlockState getStateForPlacement(@NotNull BlockPlaceContext context) {
+    public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
         return defaultBlockState().setValue(FACING, context.getHorizontalDirection());
     }
 
-    // --- Shape ---
-
     @Override
-    protected @NotNull VoxelShape getShape(@NotNull BlockState state, @NotNull BlockGetter level,
-                                           @NotNull BlockPos pos, @NotNull CollisionContext context) {
+    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
 
-    // --- Block Entity ---
-
     @Override
-    public @Nullable BlockEntity newBlockEntity(@NotNull BlockPos pos, @NotNull BlockState state) {
-        return new AthanorBlockEntity(pos, state);
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+        if (!level.isClientSide()) player.openMenu(state.getMenuProvider(level, pos));
+        return InteractionResult.sidedSuccess(level.isClientSide());
     }
 
     @Override
-    public @NotNull RenderShape getRenderShape(@NotNull BlockState state) {
-        return RenderShape.MODEL;
-    }
-
-    // --- Interaction ---
-
-    @Override
-    protected @NotNull InteractionResult useWithoutItem(@NotNull BlockState state, @NotNull Level level,
-                                                        @NotNull BlockPos pos, @NotNull Player player,
-                                                        @NotNull BlockHitResult hitResult) {
-        if (level.isClientSide()) return InteractionResult.SUCCESS;
-
-        if (level.getBlockEntity(pos) instanceof AthanorBlockEntity blockEntity
-                && player instanceof ServerPlayer serverPlayer) {
-            serverPlayer.openMenu(blockEntity, pos);
-        }
-        return InteractionResult.CONSUME;
+    protected MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
+        return new SimpleMenuProvider(
+                (id, inventory, player) -> new AthanorMenu(id, inventory, ContainerLevelAccess.create(level, pos)),
+                TITLE);
     }
 }

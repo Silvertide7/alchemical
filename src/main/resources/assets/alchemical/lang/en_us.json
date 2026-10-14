@@ -1,27 +1,26 @@
 {
   "item.alchemical.elixir": "Elixir",
   "item.alchemical.essence_stone": "Essence Stone",
-
+  "block.alchemical.athanor": "Athanor",
+  "container.alchemical.athanor": "Athanor",
   "creativetab.alchemical_tab": "Alchemical",
 
   "tooltip.alchemical.active_stone": "Active Stone: %s",
   "tooltip.alchemical.elixir_hint": "Press SHIFT for more info.",
   "tooltip.alchemical.empty_flask": "The flask is empty.",
-  "tooltip.alchemical.capacity": "Capacity: %s / %s",
-  "tooltip.alchemical.tincture": "Tincture: %s",
-  "tooltip.alchemical.essence_stone": "Essence Stone: %s",
-  "tooltip.alchemical.essence_stone_active": "Essence Stone: %s [Active]",
-  "tooltip.alchemical.catalyst": "Catalyst: %s",
+  "tooltip.alchemical.effect": "Effect: %s",
+  "tooltip.alchemical.duration": "Duration: %s",
+  "tooltip.alchemical.cooldown": "Cooldown: %s",
   "tooltip.alchemical.shift_to_switch": "Shift + Use to switch active stone.",
   "tooltip.alchemical.stone_switched": "Active stone: %s",
+  "tooltip.alchemical.ingredient.essence_stone": "Elixir Ingredient: Essence Stone",
+  "tooltip.alchemical.ingredient.tincture": "Elixir Ingredient: Tincture",
+  "tooltip.alchemical.ingredient.catalyst": "Elixir Ingredient: Catalyst",
 
   "message.alchemical.on_cooldown": "You are still recovering from your last elixir. (%s remaining)",
   "message.alchemical.flask_not_ready": "Your flask needs at least one Essence Stone and one Tincture.",
 
   "command.alchemical.clearcooldown.success": "Cleared elixir cooldown for %s.",
-
-  "block.alchemical.athanor": "Athanor",
-  "container.alchemical.athanor": "Athanor",
 
   "gui.alchemical.athanor.place_elixir": "Place an elixir",
   "gui.alchemical.athanor.add": "Add",
@@ -29,6 +28,8 @@
   "gui.alchemical.athanor.clear_confirm": "Confirm?",
   "gui.alchemical.athanor.capacity": "Potency: %s / %s",
   "gui.alchemical.athanor.active": "[Active]",
+  "gui.alchemical.athanor.none": "No ingredients added.",
+  "gui.alchemical.athanor.no_room": "Not enough room!",
   "gui.alchemical.athanor.no_elixir": "Place an elixir in the slot first.",
   "gui.alchemical.athanor.no_ingredient": "Place an ingredient in the slot below.",
   "gui.alchemical.athanor.invalid_ingredient": "This item is not a valid ingredient.",
@@ -36,17 +37,13 @@
   "gui.alchemical.athanor.duplicate_stone": "This stone is already bound to the elixir.",
   "gui.alchemical.athanor.needs_stone": "Add an essence stone first.",
   "gui.alchemical.athanor.needs_tincture": "Add a tincture first.",
-  "gui.alchemical.athanor.max_stones": "Maximum of 3 essence stones.",
-  "gui.alchemical.athanor.no_room": "Not enough room!",
+  "gui.alchemical.athanor.max_stones": "Maximum of %s essence stones.",
   "gui.alchemical.athanor.type.essence_stone": "ESSENCE STONE",
   "gui.alchemical.athanor.type.tincture": "TINCTURE",
   "gui.alchemical.athanor.type.catalyst": "CATALYST",
   "gui.alchemical.athanor.section.stones": "Essence Stones",
   "gui.alchemical.athanor.section.tinctures": "Tinctures",
   "gui.alchemical.athanor.section.catalysts": "Catalysts",
-  "gui.alchemical.athanor.entry": "- %s",
-  "gui.alchemical.athanor.entry.stone_active": "- %s [Active]",
-  "gui.alchemical.athanor.none": "No ingredients added.",
   "gui.alchemical.athanor.stat.effect_name": "%s %s",
   "gui.alchemical.athanor.stat.duration": "Duration: %s",
   "gui.alchemical.athanor.stat.cooldown": "Cooldown: %s",
@@ -56,9 +53,5 @@
   "gui.alchemical.athanor.stat.effect_duration_flat": "Effect Duration %s",
   "gui.alchemical.athanor.stat.effect_level": "Effect Level %s",
   "gui.alchemical.athanor.stat.cooldown_mult": "Elixir Cooldown ×%s",
-  "gui.alchemical.athanor.stat.cooldown_flat": "Elixir Cooldown %s",
-
-  "tooltip.alchemical.ingredient.essence_stone": "Elixir Ingredient: Essence Stone",
-  "tooltip.alchemical.ingredient.tincture": "Elixir Ingredient: Tincture",
-  "tooltip.alchemical.ingredient.catalyst": "Elixir Ingredient: Catalyst"
+  "gui.alchemical.athanor.stat.cooldown_flat": "Elixir Cooldown %s"
 }

@@ -1,357 +1,245 @@
 package net.silvertide.alchemical.menu;
 
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.core.component.DataComponentType;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.Container;
-import net.silvertide.alchemical.util.IngredientUtil;
-import net.minecraft.world.inventory.*;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.silvertide.alchemical.block.entity.AthanorBlockEntity;
 import net.silvertide.alchemical.config.AlchemicalConfig;
-import net.silvertide.alchemical.item.IElixir;
+import net.silvertide.alchemical.data.IngredientManager;
+import net.silvertide.alchemical.item.ElixirItem;
 import net.silvertide.alchemical.item.IngredientType;
 import net.silvertide.alchemical.registry.BlockRegistry;
 import net.silvertide.alchemical.registry.DataComponentRegistry;
 import net.silvertide.alchemical.registry.MenuRegistry;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.Objects;
 
+/**
+ * Two slots: a flask and one staged ingredient. [Add] moves the ingredient into the flask's
+ * data components, [Empty Elixir] dumps it. Both slots go back to the player on close.
+ */
 public class AthanorMenu extends AbstractContainerMenu {
-    public static final int ELIXIR_SLOT_INDEX = 0;
-    public static final int INGREDIENT_SLOT_INDEX = 1;
+    public static final int ELIXIR_SLOT = 0;
+    public static final int INGREDIENT_SLOT = 1;
     private static final int PLAYER_INV_START = 2;
-    private static final int PLAYER_INV_END = 29;
-    private static final int HOTBAR_START = 29;
-    private static final int HOTBAR_END = 38;
+    private static final int PLAYER_INV_END = 38;   // exclusive: 27 inventory + 9 hotbar
 
-    // GUI slot positions: elixir centred, ingredient in right panel
-    private static final int ELIXIR_SLOT_X     = 106;  // (230-18)/2
-    private static final int ELIXIR_SLOT_Y     = 16;
-    private static final int INGREDIENT_SLOT_X = 157;
-    private static final int INGREDIENT_SLOT_Y = 16;
+    public static final int BUTTON_ADD = 0;
+    public static final int BUTTON_CLEAR = 1;
 
+    // Slot positions; AthanorScreen lays everything else out around these.
+    public static final int ELIXIR_SLOT_X = 106;      // centred in the 230px screen
+    public static final int ELIXIR_SLOT_Y = 16;
+    public static final int INGREDIENT_SLOT_X = 157;
+    public static final int INGREDIENT_SLOT_Y = 16;
+
+    /** Why the staged ingredient can't go in right now, or CAN_ADD. */
     public enum ValidationResult {
-        CAN_ADD,
-        NO_ELIXIR,
-        NO_INGREDIENT,
-        INVALID_INGREDIENT,
-        AT_CAPACITY,
-        DUPLICATE_STONE,
-        NEEDS_STONE,
-        NEEDS_TINCTURE,
-        MAX_STONES
+        CAN_ADD(null),
+        NO_ELIXIR("gui.alchemical.athanor.no_elixir"),
+        NO_INGREDIENT("gui.alchemical.athanor.no_ingredient"),
+        INVALID_INGREDIENT("gui.alchemical.athanor.invalid_ingredient"),
+        AT_CAPACITY("gui.alchemical.athanor.at_capacity"),
+        DUPLICATE_STONE("gui.alchemical.athanor.duplicate_stone"),
+        NEEDS_STONE("gui.alchemical.athanor.needs_stone"),
+        NEEDS_TINCTURE("gui.alchemical.athanor.needs_tincture"),
+        MAX_STONES("gui.alchemical.athanor.max_stones");
+
+        private final @Nullable String key;
+
+        ValidationResult(@Nullable String key) {
+            this.key = key;
+        }
+
+        /** The reason shown to the player. Null for CAN_ADD. */
+        public @Nullable Component message() {
+            if (key == null) return null;
+            return this == MAX_STONES
+                    ? Component.translatable(key, AlchemicalConfig.MAX_ESSENCE_STONES.get())
+                    : Component.translatable(key);
+        }
     }
 
     private final SimpleContainer container = new SimpleContainer(2);
     private final ContainerLevelAccess access;
-    private final Player menuPlayer;
+    private final Player player;
 
-    // Synced to client: index 0 = loadedCount, index 1 = capacity
-    private final SimpleContainerData containerData = new SimpleContainerData(2) {
-        @Override
-        public int get(int index) {
-            ItemStack elixir = container.getItem(ELIXIR_SLOT_INDEX);
-            if (!(elixir.getItem() instanceof IElixir iElixir)) return 0;
-            return switch (index) {
-                case 0 -> iElixir.getLoadedCount(elixir);
-                case 1 -> iElixir.getCapacity();
-                default -> 0;
-            };
-        }
-        @Override
-        public void set(int index, int value) { /* read-only */ }
-        @Override
-        public int getCount() { return 2; }
-    };
-
-    // Server-side constructor
-    public AthanorMenu(int containerId, Inventory playerInventory, AthanorBlockEntity blockEntity) {
-        this(containerId, playerInventory,
-                ContainerLevelAccess.create(blockEntity.getLevel(), blockEntity.getBlockPos()));
-    }
-
-    // Client-side constructor
+    // Client side. The server sends no extra data.
     public AthanorMenu(int containerId, Inventory playerInventory, FriendlyByteBuf buf) {
-        this(containerId, playerInventory, readAccess(buf));
+        this(containerId, playerInventory, ContainerLevelAccess.NULL);
     }
 
-    private static ContainerLevelAccess readAccess(FriendlyByteBuf buf) {
-        buf.readBlockPos(); // consume the BlockPos written by the server
-        return ContainerLevelAccess.NULL;
-    }
-
-    // Shared constructor
-    private AthanorMenu(int containerId, Inventory playerInventory, ContainerLevelAccess access) {
+    public AthanorMenu(int containerId, Inventory playerInventory, ContainerLevelAccess access) {
         super(MenuRegistry.ATHANOR.get(), containerId);
         this.access = access;
-        this.menuPlayer = playerInventory.player;
+        this.player = playerInventory.player;
 
-        // Slot 0 — Elixir
-        addSlot(new Slot(container, ELIXIR_SLOT_INDEX, ELIXIR_SLOT_X, ELIXIR_SLOT_Y) {
+        addSlot(new Slot(container, ELIXIR_SLOT, ELIXIR_SLOT_X, ELIXIR_SLOT_Y) {
             @Override
-            public boolean mayPlace(@NotNull ItemStack stack) {
-                return stack.getItem() instanceof IElixir;
+            public boolean mayPlace(ItemStack stack) {
+                return stack.getItem() instanceof ElixirItem;
             }
         });
 
-        // Slot 1 — Ingredient (hidden and locked when no elixir is present or elixir is full)
-        addSlot(new Slot(container, INGREDIENT_SLOT_INDEX, INGREDIENT_SLOT_X, INGREDIENT_SLOT_Y) {
+        // Hidden until there's a flask with room in it.
+        addSlot(new Slot(container, INGREDIENT_SLOT, INGREDIENT_SLOT_X, INGREDIENT_SLOT_Y) {
             @Override
             public boolean isActive() {
-                ItemStack elixir = container.getItem(ELIXIR_SLOT_INDEX);
-                if (elixir.isEmpty() || !(elixir.getItem() instanceof IElixir iElixir)) return false;
-                return iElixir.getLoadedCount(elixir) < iElixir.getCapacity();
+                return flaskHasRoom();
             }
 
             @Override
-            public boolean mayPlace(@NotNull ItemStack stack) {
-                ItemStack elixir = container.getItem(ELIXIR_SLOT_INDEX);
-                return !elixir.isEmpty()
-                        && elixir.getItem() instanceof IElixir
-                        && IngredientType.of(stack) != IngredientType.NONE;
+            public boolean mayPlace(ItemStack stack) {
+                return flaskHasRoom() && IngredientType.of(stack) != IngredientType.NONE;
             }
         });
 
-        // Player inventory (slots 2–28)
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 addSlot(new Slot(playerInventory, col + row * 9 + 9, 35 + col * 18, 152 + row * 18));
             }
         }
-
-        // Hotbar (slots 29–37)
         for (int col = 0; col < 9; col++) {
             addSlot(new Slot(playerInventory, col, 35 + col * 18, 210));
         }
-
-        addDataSlots(containerData);
     }
 
-    // --- Container change listener ---
+    private boolean flaskHasRoom() {
+        ItemStack flask = container.getItem(ELIXIR_SLOT);
+        return flask.getItem() instanceof ElixirItem && !ElixirItem.isFull(flask);
+    }
+
+    public ItemStack getElixirStack() {
+        return container.getItem(ELIXIR_SLOT);
+    }
+
+    public ItemStack getIngredientStack() {
+        return container.getItem(INGREDIENT_SLOT);
+    }
+
+    // --- Keeping the hidden slot empty ---
 
     /**
-     * Called every server tick while the menu is open. Guarantees the ingredient
-     * slot is ejected whenever the elixir slot is empty or the elixir is full,
-     * regardless of which interaction path removed the elixir.
+     * Runs every server tick. If the ingredient slot has stopped being usable (flask taken
+     * out, or filled up) hand whatever's in it back, so nothing sits in a hidden slot.
      */
     @Override
     public void broadcastChanges() {
         super.broadcastChanges();
-        if (!menuPlayer.level().isClientSide()) {
-            ItemStack elixir = container.getItem(ELIXIR_SLOT_INDEX);
-            boolean shouldEject = elixir.isEmpty() || !(elixir.getItem() instanceof IElixir);
-            if (shouldEject) {
-                returnSlotToPlayer(menuPlayer, INGREDIENT_SLOT_INDEX);
-            }
+        if (!player.level().isClientSide() && !getSlot(INGREDIENT_SLOT).isActive()) {
+            ItemStack staged = container.removeItemNoUpdate(INGREDIENT_SLOT);
+            if (!staged.isEmpty()) player.getInventory().placeItemBackInInventory(staged);
         }
     }
 
     @Override
-    public void slotsChanged(@NotNull Container inv) {
-        super.slotsChanged(inv);
-        if (inv == this.container && !menuPlayer.level().isClientSide()) {
-            // Eject the staged ingredient whenever the slot should be inactive:
-            // - elixir removed, OR
-            // - elixir just became full (so the now-invisible slot can't trap items)
-            ItemStack elixir = container.getItem(ELIXIR_SLOT_INDEX);
-            boolean slotShouldBeInactive = elixir.isEmpty()
-                    || !(elixir.getItem() instanceof IElixir iElixir)
-                    || iElixir.getLoadedCount(elixir) >= iElixir.getCapacity();
-            if (slotShouldBeInactive) {
-                returnSlotToPlayer(menuPlayer, INGREDIENT_SLOT_INDEX);
-            }
-        }
+    public void removed(Player player) {
+        super.removed(player);
+        access.execute((level, pos) -> clearContainer(player, container));
     }
 
     // --- Validation ---
 
     public ValidationResult canAddIngredient() {
-        return canAddIngredient(container.getItem(ELIXIR_SLOT_INDEX), container.getItem(INGREDIENT_SLOT_INDEX));
-    }
-
-    public ValidationResult canAddIngredient(ItemStack elixir, ItemStack ingredient) {
-        if (elixir.isEmpty() || !(elixir.getItem() instanceof IElixir iElixir)) return ValidationResult.NO_ELIXIR;
+        ItemStack flask = container.getItem(ELIXIR_SLOT);
+        ItemStack ingredient = container.getItem(INGREDIENT_SLOT);
+        if (!(flask.getItem() instanceof ElixirItem)) return ValidationResult.NO_ELIXIR;
         if (ingredient.isEmpty()) return ValidationResult.NO_INGREDIENT;
-        if (IngredientType.of(ingredient) == IngredientType.NONE) return ValidationResult.INVALID_INGREDIENT;
 
-        // Require at least one essence stone before tinctures or catalysts can be added
-        IngredientType ingType = IngredientType.of(ingredient);
-        if (ingType != IngredientType.ESSENCE_STONE && iElixir.getStoneCount(elixir) < 1)
-            return ValidationResult.NEEDS_STONE;
+        IngredientType type = IngredientType.of(ingredient);
+        if (type == IngredientType.NONE) return ValidationResult.INVALID_INGREDIENT;
 
-        // Require at least one tincture before catalysts can be added
-        if (ingType == IngredientType.CATALYST && iElixir.getTinctureCount(elixir) < 1)
-            return ValidationResult.NEEDS_TINCTURE;
+        // Build order is stone, then tincture, then catalyst.
+        List<ItemStack> stones = ElixirItem.stones(flask);
+        if (type != IngredientType.ESSENCE_STONE && stones.isEmpty()) return ValidationResult.NEEDS_STONE;
+        if (type == IngredientType.CATALYST && ElixirItem.tinctures(flask).isEmpty()) return ValidationResult.NEEDS_TINCTURE;
+        if (ElixirItem.loadedCount(flask) + IngredientManager.potency(ingredient) > ElixirItem.capacity()) return ValidationResult.AT_CAPACITY;
 
-        if (iElixir.getLoadedCount(elixir) + IngredientUtil.getPotency(ingredient) > iElixir.getCapacity())
-            return ValidationResult.AT_CAPACITY;
-
-        // Prevent adding more than the configured max essence stones
-        if (ingType == IngredientType.ESSENCE_STONE && iElixir.getStoneCount(elixir) >= AlchemicalConfig.MAX_ESSENCE_STONES.get())
-            return ValidationResult.MAX_STONES;
-
-        // Prevent adding a duplicate essence stone type
-        if (IngredientType.of(ingredient) == IngredientType.ESSENCE_STONE) {
+        if (type == IngredientType.ESSENCE_STONE) {
+            if (stones.size() >= AlchemicalConfig.MAX_ESSENCE_STONES.get()) return ValidationResult.MAX_STONES;
             ResourceLocation newType = ingredient.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get());
-            if (newType != null) {
-                List<ItemStack> existing = elixir.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of());
-                for (ItemStack stone : existing) {
-                    if (newType.equals(stone.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get()))) {
-                        return ValidationResult.DUPLICATE_STONE;
-                    }
+            for (ItemStack stone : stones) {
+                if (Objects.equals(newType, stone.get(DataComponentRegistry.ESSENCE_STONE_TYPE.get()))) {
+                    return ValidationResult.DUPLICATE_STONE;
                 }
             }
         }
-
         return ValidationResult.CAN_ADD;
     }
 
-    // --- Button handlers ---
+    // --- Buttons (server side; the game broadcasts changes after a successful click) ---
 
     @Override
-    public boolean clickMenuButton(@NotNull Player player, int id) {
+    public boolean clickMenuButton(Player player, int id) {
         return switch (id) {
-            case 0 -> handleAddIngredient(player);
-            case 1 -> handleClearElixir(player);
+            case BUTTON_ADD -> addIngredient();
+            case BUTTON_CLEAR -> clearElixir(player);
             default -> false;
         };
     }
 
-    private boolean handleAddIngredient(Player player) {
-        ItemStack elixir = container.getItem(ELIXIR_SLOT_INDEX);
-        ItemStack ingredient = container.getItem(INGREDIENT_SLOT_INDEX);
+    private boolean addIngredient() {
+        if (canAddIngredient() != ValidationResult.CAN_ADD) return false;
+        ItemStack flask = container.getItem(ELIXIR_SLOT);
+        ItemStack ingredient = container.removeItem(INGREDIENT_SLOT, 1);
 
-        if (canAddIngredient(elixir, ingredient) != ValidationResult.CAN_ADD) return false;
-
-        IngredientType type = IngredientType.of(ingredient);
-        Supplier<DataComponentType<List<ItemStack>>> component = switch (type) {
-            case TINCTURE -> DataComponentRegistry.TINCTURES;
-            case ESSENCE_STONE -> DataComponentRegistry.ESSENCE_STONES;
-            case CATALYST -> DataComponentRegistry.CATALYSTS;
-            default -> null;
-        };
-        if (component == null) return false;
-
-        appendIngredientToComponent(elixir, component, ingredient);
-        container.removeItem(INGREDIENT_SLOT_INDEX, 1);
-        broadcastChanges();
+        DataComponentType<List<ItemStack>> list = Objects.requireNonNull(IngredientType.of(ingredient).component).get();
+        List<ItemStack> updated = new ArrayList<>(flask.getOrDefault(list, List.of()));
+        updated.add(ingredient);
+        flask.set(list, updated);
         return true;
     }
 
-    private boolean handleClearElixir(Player player) {
-        ItemStack elixir = container.getItem(ELIXIR_SLOT_INDEX);
-        if (elixir.isEmpty() || !(elixir.getItem() instanceof IElixir)) return false;
+    /** Dumps the flask. Each stone rolls to survive; tinctures and catalysts are always lost. */
+    private boolean clearElixir(Player player) {
+        ItemStack flask = container.getItem(ELIXIR_SLOT);
+        if (!(flask.getItem() instanceof ElixirItem)) return false;
 
-        // Each stone rolls against break chance — survivors returned to player
-        List<ItemStack> stones = new ArrayList<>(elixir.getOrDefault(DataComponentRegistry.ESSENCE_STONES.get(), List.of()));
         double breakChance = AlchemicalConfig.ESSENCE_STONE_BREAK_CHANCE.get();
-        for (ItemStack stone : stones) {
+        for (ItemStack stone : ElixirItem.stones(flask)) {
             if (player.getRandom().nextDouble() >= breakChance) {
-                if (!player.getInventory().add(stone.copy())) {
-                    player.drop(stone.copy(), false);
-                }
+                player.getInventory().placeItemBackInInventory(stone.copy());
             }
         }
-
-        // Tinctures and catalysts are destroyed — no return
-        elixir.remove(DataComponentRegistry.TINCTURES.get());
-        elixir.remove(DataComponentRegistry.ESSENCE_STONES.get());
-        elixir.remove(DataComponentRegistry.CATALYSTS.get());
-        elixir.remove(DataComponentRegistry.ACTIVE_STONE_INDEX.get());
-
-        broadcastChanges();
+        flask.remove(DataComponentRegistry.ESSENCE_STONES.get());
+        flask.remove(DataComponentRegistry.TINCTURES.get());
+        flask.remove(DataComponentRegistry.CATALYSTS.get());
+        flask.remove(DataComponentRegistry.ACTIVE_STONE_INDEX.get());
         return true;
     }
 
-    // --- Helpers for the screen ---
-
-    public ItemStack getElixirStack() {
-        return getSlot(ELIXIR_SLOT_INDEX).getItem();
-    }
-
-    public ItemStack getIngredientStack() {
-        return getSlot(INGREDIENT_SLOT_INDEX).getItem();
-    }
-
-    public int getLoadedCount() {
-        return containerData.get(0);
-    }
-
-    public int getCapacity() {
-        return containerData.get(1);
-    }
-
-    // --- On close: return elixir and any staged ingredient to the player ---
+    // --- Vanilla plumbing ---
 
     @Override
-    public void removed(@NotNull Player player) {
-        super.removed(player);
-        if (!player.level().isClientSide()) {
-            returnSlotToPlayer(player, ELIXIR_SLOT_INDEX);
-            returnSlotToPlayer(player, INGREDIENT_SLOT_INDEX);
-        }
-    }
-
-    private void appendIngredientToComponent(ItemStack elixir,
-                                              Supplier<DataComponentType<List<ItemStack>>> component,
-                                              ItemStack ingredient) {
-        List<ItemStack> current = new ArrayList<>(elixir.getOrDefault(component.get(), List.of()));
-        current.add(ingredient.copyWithCount(1));
-        elixir.set(component.get(), current);
-    }
-
-    private void returnSlotToPlayer(Player player, int slotIndex) {
-        ItemStack stack = container.getItem(slotIndex);
-        if (!stack.isEmpty()) {
-            if (!player.getInventory().add(stack)) {
-                player.drop(stack, false);
-            }
-            container.setItem(slotIndex, ItemStack.EMPTY);
-        }
-    }
-
-    // --- Standard menu boilerplate ---
-
-    @Override
-    public boolean stillValid(@NotNull Player player) {
+    public boolean stillValid(Player player) {
         return AbstractContainerMenu.stillValid(access, player, BlockRegistry.ATHANOR.get());
     }
 
     @Override
-    public @NotNull ItemStack quickMoveStack(@NotNull Player player, int index) {
-        ItemStack remainder = ItemStack.EMPTY;
-        Slot slot = this.slots.get(index);
+    public ItemStack quickMoveStack(Player player, int index) {
+        Slot slot = slots.get(index);
+        if (!slot.hasItem()) return ItemStack.EMPTY;
 
-        if (slot.hasItem()) {
-            ItemStack stack = slot.getItem();
-            remainder = stack.copy();
+        ItemStack stack = slot.getItem();
+        ItemStack original = stack.copy();
+        boolean moved = index < PLAYER_INV_START
+                ? moveItemStackTo(stack, PLAYER_INV_START, PLAYER_INV_END, true)
+                : moveItemStackTo(stack, ELIXIR_SLOT, ELIXIR_SLOT + 1, false)
+                        || moveItemStackTo(stack, INGREDIENT_SLOT, INGREDIENT_SLOT + 1, false);
+        if (!moved) return ItemStack.EMPTY;
 
-            if (index < PLAYER_INV_START) {
-                if (!moveItemStackTo(stack, PLAYER_INV_START, HOTBAR_END, true)) {
-                    return ItemStack.EMPTY;
-                }
-            } else {
-                if (!moveItemStackTo(stack, ELIXIR_SLOT_INDEX, ELIXIR_SLOT_INDEX + 1, false)) {
-                    if (!moveItemStackTo(stack, INGREDIENT_SLOT_INDEX, INGREDIENT_SLOT_INDEX + 1, false)) {
-                        return ItemStack.EMPTY;
-                    }
-                }
-            }
-
-            if (stack.isEmpty()) {
-                slot.set(ItemStack.EMPTY);
-            } else {
-                slot.setChanged();
-            }
-        }
-
-        return remainder;
+        if (stack.isEmpty()) slot.set(ItemStack.EMPTY);
+        else slot.setChanged();
+        return original;
     }
 }

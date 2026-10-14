@@ -21,13 +21,13 @@ public final class TabRegistry {
                     .title(Component.translatable("creativetab.alchemical_tab"))
                     .displayItems((parameters, output) -> {
                         output.accept(ItemRegistry.ELIXIR.get());
-                        // Dynamically add one entry per registered essence stone definition
-                        for (var def : IngredientManager.getAllStones()) {
+                        // One stone item per loaded definition
+                        for (var def : IngredientManager.stones()) {
                             ItemStack stone = new ItemStack(ItemRegistry.ESSENCE_STONE.get());
                             stone.set(DataComponentRegistry.ESSENCE_STONE_TYPE.get(), def.id());
                             output.accept(stone);
                         }
-                        output.accept(BlockRegistry.ATHANOR_ITEM.get());
+                        output.accept(ItemRegistry.ATHANOR.get());
                     })
                     .withTabsBefore(CreativeModeTabs.SPAWN_EGGS)
                     .build());

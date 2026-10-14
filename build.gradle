@@ -169,14 +169,17 @@ neoForge.ideSyncTask generateModMetadata
 publishMods {
     file = jar.archiveFile
     modLoaders.add("neoforge")
-    changelog = new File("$project.rootDir/CHANGELOG.md").getText('UTF-8')
+    // Only the newest CHANGELOG entry: entries start with a bare "x.y.z" line.
+    changelog = new File("$project.rootDir/CHANGELOG.md").getText('UTF-8').split(/(?m)^(?=\d+\.\d+\.\d+\s*$)/).find { it.trim() }.trim()
     version = "${minecraft_version}-${mod_version}"
     type = STABLE
     displayName = "alchemical-${minecraft_version}-${mod_version}"
+    dryRun = System.getenv("PUBLISH_DRY_RUN") == "true"
 
     curseforge {
         projectId = "${curseforge_project}"
-        accessToken = System.getenv("CF_TOKEN")
+        projectSlug = "alchemical"
+        accessToken = providers.environmentVariable("CF_TOKEN")
 
         minecraftVersions.add(minecraft_version)
         javaVersions.add(JavaVersion.VERSION_21)
@@ -184,7 +187,29 @@ publishMods {
         clientRequired = true
         serverRequired = true
     }
+
+    // Discord announcement only when a webhook is configured, so dry runs work without one.
+    if (System.getenv("DISCORD_WEBHOOK_URL")) {
+        discord {
+            webhookUrl = providers.environmentVariable("DISCORD_WEBHOOK_URL")
+            dryRunWebhookUrl = providers.environmentVariable("DISCORD_WEBHOOK_TEST_URL")
+            username = "Alchemical"
+            style {
+                look = "MODERN"
+                color = "curseforge"
+                link = "EMBED"
+            }
+        }
+    }
 }
+
+// Full build (tests, checks) and then upload in one go: ./gradlew buildAndPublishMods
+tasks.register("buildAndPublishMods") {
+    group = "publishing"
+    description = "Runs build, then publishMods."
+    dependsOn "build", "publishMods"
+}
+tasks.named("publishMods").configure { mustRunAfter "build" }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
